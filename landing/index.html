@@ -334,6 +334,178 @@
     font-weight: 600;
   }
 
+  /* ---------- live demo ---------- */
+  .live {
+    margin-top: clamp(72px, 10vw, 128px);
+  }
+  .live-head {
+    display: grid;
+    gap: 10px;
+    margin-bottom: clamp(20px, 3vw, 32px);
+  }
+  .live-head h2 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+  .live-head h2 em {
+    font-family: var(--font-accent);
+    font-weight: 400;
+    font-size: 1.12em;
+    letter-spacing: -0.01em;
+  }
+  .live-head p {
+    margin: 0;
+    max-width: 38em;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    text-wrap: pretty;
+  }
+  .live-head code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .9em;
+    color: var(--text);
+  }
+  @media (min-width: 900px) {
+    .live-head { grid-template-columns: repeat(12, 1fr); gap: 0; align-items: end; }
+    .live-head h2 { grid-column: 1 / span 6; }
+    .live-head p { grid-column: 7 / span 6; }
+  }
+  .live-panel {
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow), 0 32px 64px -32px rgb(0 0 0 / .18);
+    overflow: hidden;
+  }
+  .live-stage {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  .live-frame,
+  .live-frame > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .live-status {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    font-size: 15px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .live[data-state="ready"] .live-status { display: none; }
+  .live-controls {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "play scrub time"
+      "name name name"
+      "scenes scenes scenes";
+    align-items: center;
+    gap: 12px 12px;
+    padding: 12px;
+  }
+  @media (min-width: 900px) {
+    .live-controls {
+      grid-template-columns: auto minmax(0, 1fr) auto auto minmax(180px, 240px);
+      grid-template-areas: "play scrub time scenes name";
+      gap: 16px;
+      padding: 12px 16px;
+    }
+  }
+  .live-play { grid-area: play; }
+  .live-scrub { grid-area: scrub; }
+  .live-time { grid-area: time; }
+  .live-scenes { grid-area: scenes; }
+  .live-name { grid-area: name; }
+  .live-play {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-full);
+    background: var(--primary-bg);
+    color: var(--primary-text);
+    cursor: pointer;
+  }
+  .live-play svg { width: 16px; height: 16px; }
+  .live-play .pause,
+  .live[data-playing="true"] .live-play .play { display: none; }
+  .live[data-playing="true"] .live-play .pause { display: block; }
+  .live-scrub {
+    width: 100%;
+    margin: 0;
+    accent-color: var(--orange);
+  }
+  .live-time {
+    font: 500 13px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .live-scenes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .live-scenes button {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    background: var(--surface);
+    font: 500 13px/1 var(--font);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .live-scenes button:hover { background: var(--ghost-hover); }
+  .live-scenes button[aria-current="true"] {
+    border-color: var(--text);
+    color: var(--text);
+  }
+  .live-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .live-name input {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font: 16px var(--font);
+    color: var(--text);
+  }
+  .live-play:focus-visible,
+  .live-scenes button:focus-visible,
+  .live-scrub:focus-visible,
+  .live-name input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .live[data-state="loading"] .live-controls,
+  .live[data-state="idle"] .live-controls { opacity: .5; pointer-events: none; }
+  .live[data-state="error"] .live-controls { display: none; }
+
   footer {
     margin-top: clamp(96px, 14vw, 180px);
     overflow: hidden;
@@ -579,6 +751,29 @@
         <span>Built by Codex with <strong>fframes</strong>: 36 minutes to build, 24 seconds to render</span>
       </figcaption>
     </figure>
+
+    <section class="live" data-state="idle" data-playing="false" aria-labelledby="live-title">
+      <div class="live-head">
+        <h2 id="live-title">Or run it <em>live</em></h2>
+        <p>This is <code>examples/hello-world</code>: the same Rust that renders a video file, compiled to WebAssembly and drawing every frame as SVG in your browser. Type a name to change the video.</p>
+      </div>
+      <div class="live-panel">
+        <div class="live-stage">
+          <div class="live-frame" role="img" aria-label="Live render of the hello-world video"></div>
+          <p class="live-status" role="status">The live demo loads when it scrolls into view.</p>
+        </div>
+        <div class="live-controls">
+          <button class="live-play" type="button" aria-label="Play">
+            <svg class="play" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11a.5.5 0 0 0 .77.42l8.5-5.5a.5.5 0 0 0 0-.84l-8.5-5.5A.5.5 0 0 0 4 2.5Z"/></svg>
+            <svg class="pause" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>
+          </button>
+          <input class="live-scrub" type="range" min="0" max="0" step="1" value="0" aria-label="Frame">
+          <span class="live-time" aria-hidden="true">0:00 / 0:00</span>
+          <div class="live-scenes" aria-label="Scenes"></div>
+          <label class="live-name">Name <input type="text" value="World" maxlength="24" autocomplete="off" spellcheck="false"></label>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -664,6 +859,163 @@
       }, { threshold: 0.3 }).observe(footerMark);
     } else {
       footerMark.classList.add("is-visible");
+    }
+  </script>
+  <script type="importmap">{ "imports": { "@fframes/editor": "./demo/editor-shim.js" } }</script>
+  <script type="module">
+    // Live demo: the hello-world example compiled to WebAssembly, rendering each frame as SVG.
+    const live = document.querySelector(".live");
+    const frameEl = live.querySelector(".live-frame");
+    const status = live.querySelector(".live-status");
+    const playButton = live.querySelector(".live-play");
+    const scrub = live.querySelector(".live-scrub");
+    const time = live.querySelector(".live-time");
+    const scenesEl = live.querySelector(".live-scenes");
+    const nameInput = live.querySelector(".live-name input");
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let bridge, fps = 30, duration = 1, frame = 0, rendered = -1;
+    let playing = false, visible = false, clockStart = 0, raf = 0;
+    let scenes = [];
+    let pending = Promise.resolve();
+
+    const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+    function draw(force) {
+      if (!bridge || (frame === rendered && !force)) return;
+      frameEl.innerHTML = bridge.render_frame(BigInt(frame));
+      rendered = frame;
+      scrub.value = frame;
+      scrub.setAttribute("aria-valuetext", `${clock(frame / fps)} of ${clock(duration / fps)}`);
+      time.textContent = `${clock(frame / fps)} / ${clock(duration / fps)}`;
+      for (const button of scenesEl.children) {
+        const scene = scenes[button.dataset.index];
+        button.setAttribute("aria-current", String(frame >= scene.start && frame < scene.end));
+      }
+    }
+
+    function tick(now) {
+      raf = 0;
+      if (!playing || !visible || document.hidden) return;
+      frame = Math.floor(((now - clockStart) / 1000) * fps) % duration;
+      draw();
+      raf = requestAnimationFrame(tick);
+    }
+
+    function resume() {
+      if (!playing || !visible || document.hidden || raf) return;
+      clockStart = performance.now() - (frame / fps) * 1000;
+      raf = requestAnimationFrame(tick);
+    }
+
+    function setPlaying(value) {
+      playing = value;
+      live.dataset.playing = String(value);
+      playButton.setAttribute("aria-label", value ? "Pause" : "Play");
+      if (value) resume();
+    }
+
+    function seek(to) {
+      frame = Math.max(0, Math.min(duration - 1, to));
+      clockStart = performance.now() - (frame / fps) * 1000;
+      draw();
+    }
+
+    async function loadFonts() {
+      bridge.populate_static_fonts_db_with_static_fonts();
+      const faces = [];
+      for (let i = 0; ; i++) {
+        const font = bridge.get_static_font_data_by_index(i);
+        if (!font) break;
+        const { info, data } = font;
+        if (!info.name) continue;
+        const face = new FontFace(info.name, data.slice().buffer, {
+          weight: String(info.weight),
+          style: String(info.style).toLowerCase(),
+        });
+        faces.push(face.load().then(loaded => document.fonts.add(loaded)));
+      }
+      await Promise.all(faces);
+    }
+
+    function readScenes(meta) {
+      const timeline = meta.scenesTimeline;
+      const list = Array.isArray(timeline) ? timeline : timeline?.scenes ?? [];
+      return list
+        .map(scene => ({
+          name: scene.name,
+          start: scene.start_frame ?? scene.startFrame ?? scene.start ?? scene.frame_range?.start,
+          end: scene.end_frame ?? scene.endFrame ?? scene.end ?? scene.frame_range?.end,
+        }))
+        .filter(scene => scene.name && Number.isFinite(scene.start) && Number.isFinite(scene.end));
+    }
+
+    async function boot() {
+      live.dataset.state = "loading";
+      status.textContent = "Loading the WebAssembly build…";
+      try {
+        globalThis.__fframes_get_video_frame ??= () => null;
+        const wasm = await import("./demo/hello-world.js");
+        await wasm.default();
+        bridge = wasm.create_wasm_bridge();
+        await loadFonts();
+        const meta = await bridge.prepare();
+        fps = meta.fps || 30;
+        duration = Math.max(1, meta.durationInFrames);
+        scrub.max = duration - 1;
+        scenes = readScenes(meta);
+        scenesEl.replaceChildren(...scenes.map((scene, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.index = index;
+          button.textContent = scene.name;
+          button.addEventListener("click", () => seek(scene.start));
+          return button;
+        }));
+        // With reduced motion, wait for Play on a frame that shows the text.
+        frame = reduceMotion ? Math.min(60, duration - 1) : 0;
+        live.dataset.state = "ready";
+        draw(true);
+        setPlaying(!reduceMotion);
+      } catch (error) {
+        console.error(error);
+        live.dataset.state = "error";
+        status.textContent = "The live demo could not start in this browser. The video above shows the same framework.";
+      }
+    }
+
+    playButton.addEventListener("click", () => setPlaying(!playing));
+    scrub.addEventListener("input", () => seek(Number(scrub.value)));
+
+    let nameTimer;
+    nameInput.addEventListener("input", () => {
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(() => {
+        const name = nameInput.value;
+        // Calls are chained: the bridge must not replace the video while it is preparing one.
+        pending = pending.then(async () => {
+          if (!bridge) return;
+          await bridge.set_name(name);
+          draw(true);
+        }).catch(console.error);
+      }, 120);
+    });
+
+    document.addEventListener("visibilitychange", resume);
+
+    if ("IntersectionObserver" in window && typeof WebAssembly === "object") {
+      let booted = false;
+      new IntersectionObserver(entries => {
+        visible = entries[0].isIntersecting;
+        if (visible && !booted) {
+          booted = true;
+          boot();
+        }
+        resume();
+      }, { rootMargin: "200px 0px" }).observe(live);
+    } else {
+      live.dataset.state = "error";
+      status.textContent = "The live demo needs WebAssembly. The video above shows the same framework.";
     }
   </script>
 </body>
