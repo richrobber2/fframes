@@ -432,7 +432,7 @@ impl<'a, 'media: 'a, TVideo: Video> Previewer<'a, 'media, TVideo> {
             font_source: Some(&self.runtime.font_source),
             abort_signal: None,
             current_video_size: self.size.clone(),
-            input: None,
+            input: self.options.input.as_ref(),
         };
 
         let svgr = super::render_frame_guarded(

@@ -111,9 +111,64 @@ pub fn fourier_peak(terms: usize) -> f32 {
         .fold(f32::MIN, f32::max)
 }
 
+/// Reads an angle the way people write it: `1.2` (radians), `90°`, `90deg`, `pi`, `π/2`,
+/// `3pi/4`, `-pi/3`, `2π`. `None` when it is not an angle.
+pub fn parse_angle(text: &str) -> Option<f32> {
+    let text = text
+        .trim()
+        .to_lowercase()
+        .replace('π', "pi")
+        .replace(' ', "");
+    if let Some(degrees) = text.strip_suffix('°').or_else(|| text.strip_suffix("deg")) {
+        return parse_fraction(degrees).map(f32::to_radians);
+    }
+    let text = text.strip_suffix("rad").unwrap_or(&text);
+    match text.split_once("pi") {
+        Some((coefficient, rest)) => {
+            let coefficient = match coefficient {
+                "" | "+" => 1.0,
+                "-" => -1.0,
+                number => parse_fraction(number.trim_end_matches('*'))?,
+            };
+            let divisor = match rest {
+                "" => 1.0,
+                rest => rest.strip_prefix('/')?.parse::<f32>().ok()?,
+            };
+            (divisor != 0.0).then(|| coefficient * PI / divisor)
+        }
+        None => parse_fraction(text),
+    }
+}
+
+/// A number or a fraction such as `3/4`.
+fn parse_fraction(text: &str) -> Option<f32> {
+    let value = match text.split_once('/') {
+        Some((top, bottom)) => {
+            let bottom = bottom.parse::<f32>().ok()?;
+            (bottom != 0.0).then_some(top.parse::<f32>().ok()? / bottom)?
+        }
+        None => text.parse::<f32>().ok()?,
+    };
+    value.is_finite().then_some(value)
+}
+
+/// Reads a vector written as `x, y`, `x y` or `(x, y)`.
+pub fn parse_vector(text: &str) -> Option<(f32, f32)> {
+    let mut parts = text
+        .trim()
+        .trim_start_matches('(')
+        .trim_end_matches(')')
+        .split(|c: char| c == ',' || c.is_whitespace())
+        .filter(|part| !part.is_empty())
+        .map(parse_fraction);
+    let vector = (parts.next()??, parts.next()??);
+    parts.next().is_none().then_some(vector)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f32::consts::TAU;
 
     fn close(a: f32, b: f32, tolerance: f32) -> bool {
         (a - b).abs() <= tolerance
@@ -233,5 +288,41 @@ mod tests {
         for terms in [20, 100, 400] {
             assert!(close(fourier_peak(terms), 1.179, 0.01));
         }
+    }
+
+    #[test]
+    fn angles_parse_the_way_people_write_them() {
+        let cases = [
+            ("1.2", 1.2),
+            ("pi", PI),
+            ("π", PI),
+            ("π/2", PI / 2.0),
+            ("3pi/4", 3.0 * PI / 4.0),
+            ("-pi/3", -PI / 3.0),
+            ("2π", TAU),
+            ("90°", PI / 2.0),
+            ("45 deg", PI / 4.0),
+            ("0.5rad", 0.5),
+        ];
+        for (text, expected) in cases {
+            let parsed = parse_angle(text).unwrap_or_else(|| panic!("{text} did not parse"));
+            assert!(
+                close(parsed, expected, 1e-5),
+                "{text}: {parsed} != {expected}"
+            );
+        }
+        for text in ["", "abc", "pi/0", "1/0", "pi/", "tau"] {
+            assert_eq!(parse_angle(text), None, "{text} should not parse");
+        }
+    }
+
+    #[test]
+    fn vectors_parse_with_commas_spaces_or_parentheses() {
+        assert_eq!(parse_vector("1.5, -0.5"), Some((1.5, -0.5)));
+        assert_eq!(parse_vector("(2 1)"), Some((2.0, 1.0)));
+        assert_eq!(parse_vector("1/2, 3/4"), Some((0.5, 0.75)));
+        assert_eq!(parse_vector("1"), None);
+        assert_eq!(parse_vector("1, 2, 3"), None);
+        assert_eq!(parse_vector("a, b"), None);
     }
 }

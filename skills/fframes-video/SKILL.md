@@ -148,6 +148,8 @@ Rules:
 - Look at the PNGs before saying anything looks good.
 - Prefer `strip` to many `frame` calls; add `--scale 0.5` when composition is all you need.
 - Add `--json` when parsing output: the result goes to stdout, progress to stderr.
+- `--set key=value` (repeatable) renders as if a viewer had set that value live
+  (`ctx.input().value(key)`): use it to render or check a specific state of an interactive video.
 - Keep `--release`: debug builds render many times slower.
 
 ### Addressing time

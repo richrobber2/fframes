@@ -93,6 +93,10 @@ fframes::svgr!(
 )
 ```
 
+- Let people (and agents) type exact values too: read them with `input.value("theta")` and parse
+  leniently (`pi/2`, `90°`, `2, 1`), see `parse_angle` and `parse_vector` in `math-ideas`. Order:
+  pointer over the picture, then the typed value, then the autopilot. A page binds a field with
+  `<input data-fframes-value="theta">`; `just live <example>` adds fields from `live.json`.
 - Keep the tree's shape fixed: draw the maximum number of circles, eigenvector lines and labels
   every frame and hide the unused ones with `opacity="0"`. A changing child count makes the live
   runtime replace that whole group.
@@ -107,11 +111,13 @@ fframes::svgr!(
 
 ```bash
 cargo test -p my-lesson                      # the mathematics is right
+$R frame Rotation@50% --set theta=pi         # render an exact state: e^(iπ) = −1 must be on screen
+$R frame Matrices@50% --set i=2,1 --set j=1,2   # det 3, eigenvalues 3 and 1
 $R inspect --every 0.25s                     # no missing glyphs, nothing cut off
 $R strip -n 9                                # every scene, the parameter moving
 $R frame Rotation@50%,Matrices@50%           # read the numbers on screen and check them by hand
 ```
 
-Pick frames where the answer is known (the angle at π, a matrix with a flip, many circles) and
-confirm the on-screen values against the test facts. Read the numbers from the frame image or
+Pick states where the answer is known (the angle at π, a matrix with a flip, many circles), set
+them with `--set`, and confirm the on-screen values against the test facts. Read the numbers from the frame image or
 from `svg TIME`; they are text.

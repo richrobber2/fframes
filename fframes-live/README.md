@@ -104,6 +104,8 @@ What the viewer does reaches Rust through `ctx.input()` (`fframes::Input`):
 | time since mount | `input.time` |
 
 Play an animation from an event with `frame.animate_at(&anim, input.seconds_since("open").unwrap_or(0.))`.
+Values can also be set without a page: `--set key=value` on any `fframes::cli` command (or
+`RenderOptions::input`) renders as if a viewer had set them, e.g. `frame Rotation@50% --set theta=pi`.
 For state of your own, implement `Video::on_event`. File renders pass an untouched input, so the
 same video renders its resting state into a file.
 

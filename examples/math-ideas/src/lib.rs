@@ -115,9 +115,15 @@ impl Scene for EulerScene {
         const CY: f32 = 540.0;
         const R: f32 = 330.0;
 
-        let theta = match pointer_on_picture(ctx.input()) {
+        // The pointer over the picture, else a typed value (`theta`), else the autopilot.
+        let input = ctx.input();
+        let theta = match pointer_on_picture(input) {
             Some((px, py)) => (CY - py).atan2(px - CX).rem_euclid(TAU),
-            None => (0.62 * frame.seconds()).rem_euclid(TAU),
+            None => input
+                .value("theta")
+                .and_then(math::parse_angle)
+                .unwrap_or(0.62 * frame.seconds())
+                .rem_euclid(TAU),
         };
         let (cos, sin) = math::euler(theta);
         let (px, py) = (CX + R * cos, CY - R * sin);
@@ -214,16 +220,23 @@ impl Scene for MatrixScene {
     }
 
     fn render_frame<'a>(&'a self, frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
-        let i = if let Some((px, py)) = pointer_on_picture(ctx.input()) {
-            (
-                ((px - Self::OX) / Self::UNIT).clamp(-4.0, 4.0),
-                ((Self::OY - py) / Self::UNIT).clamp(-4.0, 4.0),
-            )
+        // î: the pointer over the picture, else a typed value (`i`), else the autopilot.
+        // ĵ: a typed value (`j`), else fixed.
+        let input = ctx.input();
+        let clamp = |(x, y): (f32, f32)| (x.clamp(-4.0, 4.0), y.clamp(-4.0, 4.0));
+        let i = if let Some((px, py)) = pointer_on_picture(input) {
+            clamp(((px - Self::OX) / Self::UNIT, (Self::OY - py) / Self::UNIT))
+        } else if let Some(i) = input.value("i").and_then(math::parse_vector) {
+            clamp(i)
         } else {
             let a = 0.52 * frame.seconds();
             (1.4 * a.cos(), 0.9 * a.sin())
         };
-        let m = Matrix2 { i, j: Self::J };
+        let j = input
+            .value("j")
+            .and_then(math::parse_vector)
+            .map_or(Self::J, clamp);
+        let m = Matrix2 { i, j };
         let det = m.det();
         let eigen = m.eigen();
 
@@ -340,10 +353,13 @@ pub struct FourierScene;
 pub const MAX_CIRCLES: usize = 24;
 
 impl FourierScene {
-    /// How many circles: one more every second up to 12, adjusted by the viewer's + and − in the
-    /// live runtime.
+    /// How many circles: a typed value (`circles`), else one more every second up to 12; adjusted
+    /// by the viewer's + and − in the live runtime.
     pub fn circles(input: &Input, seconds: f32) -> usize {
-        let growing = (1 + seconds as i64).min(12);
+        let growing = input
+            .value("circles")
+            .and_then(|text| text.trim().parse::<i64>().ok())
+            .unwrap_or_else(|| (1 + seconds as i64).min(12));
         let adjusted = growing + i64::from(input.count("more")) - i64::from(input.count("fewer"));
         adjusted.clamp(1, MAX_CIRCLES as i64) as usize
     }

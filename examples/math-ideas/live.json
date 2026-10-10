@@ -1,0 +1,15 @@
+{
+  "title": "Three ideas in math",
+  "hint": "Point at a picture to explore it, or type exact values: theta like pi/2 or 90°, î and ĵ like 2, 1, circles 1 to 24.",
+  "keepAlive": true,
+  "fields": [
+    { "key": "theta", "label": "θ", "value": "" },
+    { "key": "i", "label": "î", "value": "" },
+    { "key": "j", "label": "ĵ", "value": "" },
+    { "key": "circles", "label": "circles", "value": "" }
+  ],
+  "buttons": [
+    { "action": "fewer", "label": "− circle" },
+    { "action": "more", "label": "+ circle" }
+  ]
+}

@@ -111,6 +111,16 @@
     background: var(--surface); font: 500 14px/1 var(--font); color: var(--text-secondary); cursor: pointer; white-space: nowrap;
   }
   .scenes button[aria-current="true"] { border-color: var(--text); color: var(--text); }
+  .values { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px; border-top: 1px solid var(--border); }
+  @media (min-width: 900px) { .values { padding: 12px 16px; } }
+  .values-label { font-size: 14px; color: var(--text-secondary); }
+  .values label { display: flex; align-items: center; gap: 8px; font: 15px var(--mono); color: var(--text); }
+  .values label[hidden] { display: none; }
+  .values input {
+    width: 150px; height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-sm);
+    font: 15px var(--mono); color: var(--text); background: var(--surface);
+  }
+  .values input:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   .hint { grid-column: 1 / -1; margin: 0; font-size: 15px; color: var(--text-secondary); }
   @media (min-width: 900px) { .hint { grid-column: auto; justify-self: end; text-align: right; } }
 
@@ -163,6 +173,13 @@
         <div class="scenes" aria-label="Ideas"></div>
         <p class="hint" aria-live="polite"></p>
       </div>
+      <div class="values">
+        <span class="values-label">Or type exact values:</span>
+        <label data-scene="Rotation">θ <input data-fframes-value="theta" placeholder="pi/2, 90°, 1.2" autocomplete="off" spellcheck="false"></label>
+        <label data-scene="Matrices">î <input data-fframes-value="i" placeholder="2, 1" autocomplete="off" spellcheck="false"></label>
+        <label data-scene="Matrices">ĵ <input data-fframes-value="j" placeholder="0.3, 1.1" autocomplete="off" spellcheck="false"></label>
+        <label data-scene="Fourier">circles <input data-fframes-value="circles" placeholder="1 to 24" inputmode="numeric" autocomplete="off"></label>
+      </div>
     </section>
 
     <section class="notes">
@@ -170,16 +187,17 @@
         <h2>For people</h2>
         <p>The lesson plays on its own as a 36-second video. Point at a picture and it stops to let you explore:</p>
         <ul>
-          <li><strong>Rotation is multiplication.</strong> The pointer sets the angle θ. Watch e<sup>iθ</sup> walk around the circle, its shadows become cos θ and sin θ, and land on −1 at θ = π.</li>
+          <li><strong>Rotation is multiplication.</strong> The pointer (or a typed value such as <code>pi/3</code>) sets the angle θ. Watch e<sup>iθ</sup> walk around the circle, its shadows become cos θ and sin θ, and land on −1 at θ = π.</li>
           <li><strong>Matrices move space.</strong> The pointer moves where î lands. The grid follows, the shaded square's area is the determinant (purple when space flips) and the green lines are the eigenvectors, which only stretch.</li>
           <li><strong>Any wave is circles.</strong> + and − change how many circles add up. The corners sharpen, but the overshoot at the jump stays near 9%: the Gibbs phenomenon.</li>
         </ul>
       </div>
       <div>
         <h2>For AI agents</h2>
-        <p>The lesson is a Rust crate, <code>examples/math-ideas</code>. Its pictures are drawn from <code>src/math.rs</code>, whose tests state each idea as a checkable fact: |e<sup>iθ</sup>| = 1, Mv = λv, det = area, the Gibbs peak tending to 1.179. The words and numbers in each frame are real text in this page's SVG, not pixels, so they can be read here or from rendered frames:</p>
+        <p>The lesson is a Rust crate, <code>examples/math-ideas</code>. Its pictures are drawn from <code>src/math.rs</code>, whose tests state each idea as a checkable fact: |e<sup>iθ</sup>| = 1, Mv = λv, det = area, the Gibbs peak tending to 1.179. The words and numbers in each frame are real text in this page's SVG, not pixels, so they can be read here or from rendered frames. The fields above take exact values, and <code>--set</code> renders the same states from the command line:</p>
 <pre>cargo test -p math-ideas-example
-cargo run --release -p math-ideas-example -- frame Matrices@50%
+cargo run --release -p math-ideas-example -- frame Rotation@50% --set theta=pi
+cargo run --release -p math-ideas-example -- frame Matrices@50% --set i=2,1 --set j=1,2
 cargo run --release -p math-ideas-example -- strip -n 9
 cargo run --release -p math-ideas-example -- render</pre>
         <p style="margin-top:12px">To build a lesson like this, add the fframes skill (<code>npx skills add https://fframes.studio</code>) and read its math guide, <code>references/math.md</code>.</p>
@@ -241,6 +259,7 @@ cargo run --release -p math-ideas-example -- render</pre>
       const scene = scenes[index];
       hint.textContent = scene ? (HINTS[scene.name] ?? "") : "";
       card.querySelector(".controls").hidden = scene?.name !== "Fourier";
+      for (const label of panel.querySelectorAll(".values label")) label.hidden = label.dataset.scene !== scene?.name;
     }
 
     async function loadFonts(bridge) {

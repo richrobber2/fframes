@@ -60,6 +60,20 @@ pub struct Cli<A: Args = NoArgs> {
     /// Output resolution factor, e.g. 0.5 for half resolution.
     #[arg(long, global = true)]
     pub scale: Option<f64>,
+
+    /// Render as if a viewer set this value live: `ctx.input().value(KEY)` returns VALUE.
+    /// Repeat for more values, e.g. `--set theta=pi --set circles=7`.
+    #[arg(long = "set", global = true, value_name = "KEY=VALUE", value_parser = parse_key_value)]
+    pub set: Vec<(String, String)>,
+}
+
+fn parse_key_value(text: &str) -> Result<(String, String), String> {
+    match text.split_once('=') {
+        Some((key, value)) if !key.trim().is_empty() => {
+            Ok((key.trim().to_string(), value.to_string()))
+        }
+        _ => Err(format!("expected KEY=VALUE, got `{text}`")),
+    }
 }
 
 impl<A: Args> Cli<A> {
@@ -354,6 +368,13 @@ impl<'r, 'a, 'media: 'a, V: Video + Send + Sync, B: FFramesRenderBackend, A: Arg
         let json = cli.json;
         if let Some(scale) = cli.scale {
             options.scale_resolution = scale;
+        }
+        if !cli.set.is_empty() {
+            let mut input = options.input.take().unwrap_or_default();
+            for (key, value) in &cli.set {
+                input.set_value(key.clone(), value.clone());
+            }
+            options.input = Some(input);
         }
         if json {
             options.logger = FFramesLoggerVariant::Json;
@@ -1400,6 +1421,24 @@ fn waveform_image<'a, 'm: 'a, V: Video>(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn set_flags_parse_key_value_pairs() {
+        assert_eq!(
+            super::parse_key_value("theta=pi"),
+            Ok(("theta".into(), "pi".into()))
+        );
+        assert_eq!(
+            super::parse_key_value("note=a=b"),
+            Ok(("note".into(), "a=b".into()))
+        );
+        assert_eq!(
+            super::parse_key_value("empty="),
+            Ok(("empty".into(), String::new()))
+        );
+        assert!(super::parse_key_value("novalue").is_err());
+        assert!(super::parse_key_value("=x").is_err());
+    }
+
     use super::*;
 
     #[test]

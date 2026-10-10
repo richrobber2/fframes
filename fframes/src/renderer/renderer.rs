@@ -55,6 +55,10 @@ pub struct RenderOptions<'a, 'media> {
     pub frame_range: Option<std::ops::Range<usize>>,
     /// Master bus of the audio mix: limiter, master gain and de-click fades.
     pub audio_mix: crate::AudioMixOptions,
+    /// Viewer input to render with, as if the video ran live: [`crate::FFramesContext::input`]
+    /// answers from it. `None` renders the untouched state. The CLI fills it from
+    /// `--set key=value`.
+    pub input: Option<crate::Input>,
 }
 
 impl RenderOptions<'_, '_> {
@@ -82,6 +86,7 @@ impl Default for RenderOptions<'_, '_> {
             tmp_files_directory: None,
             frame_range: None,
             audio_mix: crate::AudioMixOptions::default(),
+            input: None,
         }
     }
 }
@@ -228,7 +233,7 @@ pub fn render<
             TVideo::HEIGHT,
             options.scale_resolution,
         ),
-        input: None,
+        input: options.input.as_ref(),
     };
 
     render_backend.render(
@@ -313,7 +318,7 @@ pub fn render_frame<
             TVideo::HEIGHT,
             options.scale_resolution,
         ),
-        input: None,
+        input: options.input.as_ref(),
     };
 
     let decoders = VideoDecodersWorker::new(1);

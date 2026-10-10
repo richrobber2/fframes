@@ -608,7 +608,8 @@ See `examples/teej-podcast/src/main.rs`; `cargo fframes new` generates the same 
 | `preview [TIME] [--paused] [--mute]` | real-time GPU window (`fframes_native_player`), blocks until closed |
 
 Global flags: `--json` (one JSON document on stdout, JSON progress events on stderr),
-`--scale 0.5`. Times: frames `120`, `3.2s`, `1:05`, `50%`, `start`/`end`, scenes `Intro`
+`--scale 0.5`, `--set key=value` (repeatable: renders as if a viewer set that value live, so
+`ctx.input().value(key)` returns it; also `RenderOptions::input`). Times: frames `120`, `3.2s`, `1:05`, `50%`, `start`/`end`, scenes `Intro`
 (`IntroScene` also matches), `#3`, `Intro[1]`, `Intro@1.5s`/`@50%`/`@end`; ranges `a..b`,
 `a..`, `..b`, `all` or a scene name.
 
