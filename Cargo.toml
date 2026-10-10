@@ -23,6 +23,8 @@ members = [
     "examples/hello-world/editor/editor-bridge",
     "examples/dot-field",
     "examples/dot-field/editor/editor-bridge",
+    "examples/math-ideas",
+    "examples/math-ideas/editor/editor-bridge",
     "examples/marketing",
     "examples/marketing/editor/editor-bridge",
     "examples/tiktok",

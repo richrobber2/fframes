@@ -1961,6 +1961,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "math-ideas-bridge-example"
+version = "1.2.0"
+dependencies = [
+ "fframes-editor-controller",
+ "math-ideas-example",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "math-ideas-example"
+version = "1.2.0"
+dependencies = [
+ "fframes",
+]
+
+[[package]]
 name = "maybe-rayon"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

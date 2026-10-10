@@ -22,7 +22,8 @@ and ffmpeg encodes the result.
 Each project gets a command line (from `fframes::cli`). Use it for everything: render a video,
 open the real-time preview window, and look at frames, contact sheets and loudness numbers as
 files you can read. Read `references/design.md` before designing, `references/api.md` while
-writing code and `references/audio.md` for sound.
+writing code, `references/audio.md` for sound and `references/math.md` when the video explains
+mathematics or anything with numbers (compute every value, test the facts, make it interactive).
 
 When matching a supplied video, first follow the reference-analysis guidance in
 `references/design.md`. Its cuts, pacing and motion take precedence over the design defaults

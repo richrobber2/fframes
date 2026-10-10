@@ -103,6 +103,8 @@ export function applyOps(host, ops) {
  * - `loop` (default true): wrap the timeline; otherwise stop on the last frame.
  * - `autoplay` (default true): start playing the timeline.
  * - `valuesRoot` (default document): where to look for `[data-fframes-value]` fields.
+ * - `keepAlive` (default false): keep rendering while paused, for frames that move with the session
+ *   clock (`ctx.input().time`) rather than the timeline.
  * - `strategy` (default "diff"): "replace" rebuilds the whole SVG every frame instead of applying
  *   changes, which is how frames were shown before the live runtime. Only useful to compare.
  * - `onFrame(frame, stats)`: called after each rendered frame. `stats.renderMs` is the time in
@@ -117,6 +119,7 @@ export function mount(bridge, element, options) {
     autoplay = true,
     valuesRoot = document,
     onFrame = () => {},
+    keepAlive = false,
   } = options;
   let strategy = options.strategy ?? "diff";
   const stats = { renderMs: 0, applyMs: 0, ops: 0 };
@@ -169,7 +172,7 @@ export function mount(bridge, element, options) {
       } else frame = next;
     }
     render(now);
-    if (playing || now < settleUntil) raf = requestAnimationFrame(tick);
+    if (playing || keepAlive || now < settleUntil) raf = requestAnimationFrame(tick);
   }
 
   function wake() {
@@ -285,6 +288,7 @@ export function mount(bridge, element, options) {
   }
   render(performance.now());
   setPlaying(autoplay);
+  if (keepAlive) wake();
 
   return {
     play: () => setPlaying(true),
@@ -308,6 +312,11 @@ export function mount(bridge, element, options) {
     setStrategy(value) {
       strategy = value;
       bridge.reset_live();
+      poke();
+    },
+    /** Triggers an action as if a `[data-action]` element was clicked, for controls outside the frame. */
+    trigger(action) {
+      bridge.trigger(action);
       poke();
     },
     seek(to) {

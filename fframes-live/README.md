@@ -44,6 +44,11 @@ Options of `mount` besides `fps` and `durationInFrames`: `loop` (default true), 
 puts the whole SVG into the page every frame instead, only to compare (`live.setStrategy(...)`
 switches at runtime).
 
+`keepAlive: true` keeps rendering while the timeline is paused, for frames that move with the
+session clock (`ctx.input().time`). `live.trigger("action")` triggers an action from a control
+outside the frame, as if a `[data-action]` element was clicked (`landing/math/` uses it for its
+phone layout).
+
 ## Performance
 
 `examples/dot-field` (2,304 circles, every one moving each frame) is the benchmark; open

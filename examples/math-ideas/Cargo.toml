@@ -1,0 +1,29 @@
+[package]
+name = "math-ideas-example"
+version = "1.2.0"
+edition = "2024"
+
+[dependencies]
+fframes = { workspace = true, features = ["h264", "h265", "vpx", "libav-agree-gpl"] }
+
+# Keep FFmpeg source fallbacks portable across CI runner CPUs (see README).
+[target.'cfg(not(any(target_arch = "wasm32", windows)))'.dependencies]
+fframes = { workspace = true, features = ["build-portable"] }
+
+[features]
+default = ["renderer"]
+renderer = ["fframes/compile-time-svgtree", "fframes/cli"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "math_ideas_example"
+path = "src/lib.rs"
+doctest = false
+
+[[bin]]
+name = "math_ideas_example_bin"
+path = "src/main.rs"
+required-features = ["renderer"]
+
+[lints]
+workspace = true

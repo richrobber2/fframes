@@ -697,6 +697,9 @@ fframes::svgr!(<rect data-action="menu" role="button" tabindex="0" aria-label="M
 - Every changed attribute is one DOM call: round animated values to what the eye can see.
   `examples/dot-field` (2,304 dots, `landing/dots/`) is the heavy example and benchmark; the page
   switches between the live diff and re-rendering the whole SVG (`mount(..., { strategy })`).
+- `examples/math-ideas` (`landing/math/`) teaches Euler's formula, matrices and Fourier series
+  interactively; `skills/fframes-video/references/math.md` is the guide for math explainers:
+  compute every value in a tested module, one idea and one moving parameter per scene.
 
 ### 10. Verify before you finish
 

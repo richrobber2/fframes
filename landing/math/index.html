@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fframes · Three ideas in math</title>
+<meta name="description" content="Three big ideas of mathematics as moving pictures you can play with: Euler's formula, matrices and eigenvectors, and Fourier series. Built with fframes; the same code renders an explainer video.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="../brand/favicon.ico" sizes="48x48">
+<link rel="icon" href="../brand/fframes-mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font: ui-sans-serif, -apple-system, system-ui, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --font-accent: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --surface: #ffffff;
+    --surface-secondary: #f9f9f9;
+    --paper: #fbfaf7;
+    --text: #0d0d0d;
+    --text-secondary: #5d5d5d;
+    --border: rgb(13 13 13 / .1);
+    --primary-bg: #181818;
+    --primary-text: #fff;
+    --ring: #0169cc;
+    --orange: #fb6a22;
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-full: 9999px;
+    --shadow: 0 8px 16px -4px rgb(0 0 0 / .12);
+    --gutter: 16px;
+    --max: 1280px;
+  }
+  @media (min-width: 640px) { :root { --gutter: 32px; } }
+  @media (min-width: 1024px) { :root { --gutter: 48px; } }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--text);
+    background: var(--surface);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+  .topbar { border-bottom: 1px solid var(--border); }
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 60px; }
+  .topbar img { display: block; height: 26px; width: auto; }
+  .back { font-size: 14px; color: var(--text-secondary); text-decoration: none; }
+  .back:hover { color: var(--text); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  header.intro { display: grid; gap: 12px; padding: clamp(40px, 7vw, 88px) 0 clamp(24px, 4vw, 40px); }
+  h1 { margin: 0; font-size: clamp(36px, 6vw, 72px); line-height: 1; font-weight: 600; letter-spacing: -0.04em; text-wrap: balance; }
+  h1 em { font-family: var(--font-accent); font-weight: 400; font-size: 1.12em; letter-spacing: -0.01em; }
+  .intro p { margin: 0; max-width: 40em; color: var(--text-secondary); text-wrap: pretty; }
+  @media (min-width: 900px) {
+    header.intro { grid-template-columns: repeat(12, 1fr); gap: 0; align-items: end; }
+    h1 { grid-column: 1 / span 6; }
+    .intro p { grid-column: 7 / span 6; font-size: 18px; }
+  }
+
+  .panel {
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow), 0 32px 64px -32px rgb(0 0 0 / .18);
+    overflow: hidden;
+  }
+  .stage { position: relative; aspect-ratio: 16 / 9; background: var(--paper); border-bottom: 1px solid var(--border); }
+  .frame, .frame > svg { display: block; width: 100%; height: 100%; }
+  .frame { cursor: crosshair; }
+  .frame [data-action] { cursor: pointer; }
+  .frame [data-action]:focus { outline: none; }
+  .frame [data-action]:focus-visible rect { stroke: var(--ring); stroke-width: 8; }
+  .status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; color: var(--text-secondary); font-size: 15px; text-align: center; }
+  [data-state="ready"] .status { display: none; }
+
+  /* Phones: the stage shows only the picture (the left 1180 of 1920 units) and the words move into
+     an HTML card below it, copied from the frame, so they stay readable. */
+  .card { display: none; }
+  @media (max-width: 899px) {
+    .stage { aspect-ratio: 1180 / 1080; overflow: hidden; }
+    .frame { width: 162.712%; }
+    .card { display: grid; gap: 6px; padding: 16px; border-bottom: 1px solid var(--border); }
+    .card .label { margin: 0; font-size: 12px; letter-spacing: .12em; color: var(--orange); }
+    .card h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+    .card .body { margin: 0; font-size: 15px; color: var(--text-secondary); }
+    .card .facts { margin: 6px 0 0; font: 13px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .card .controls { display: flex; gap: 8px; margin-top: 6px; }
+    .card .controls[hidden] { display: none; }
+    .card .controls button {
+      width: 56px; height: 40px; border: 0; border-radius: var(--r-full);
+      background: var(--primary-bg); color: var(--primary-text); font: 600 20px/1 var(--mono); cursor: pointer;
+    }
+  }
+  .bar { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px; }
+  @media (min-width: 900px) { .bar { grid-template-columns: auto auto minmax(0, 1fr); gap: 16px; padding: 12px 16px; } }
+  .play { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--r-full); background: var(--primary-bg); color: var(--primary-text); cursor: pointer; }
+  .play svg { width: 16px; height: 16px; }
+  .play .pause, [data-playing="true"] .play .resume { display: none; }
+  [data-playing="true"] .play .pause { display: block; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .scenes button {
+    height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--r-full);
+    background: var(--surface); font: 500 14px/1 var(--font); color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+  }
+  .scenes button[aria-current="true"] { border-color: var(--text); color: var(--text); }
+  .hint { grid-column: 1 / -1; margin: 0; font-size: 15px; color: var(--text-secondary); }
+  @media (min-width: 900px) { .hint { grid-column: auto; justify-self: end; text-align: right; } }
+
+  .notes { display: grid; gap: 28px; margin: clamp(32px, 5vw, 56px) 0 clamp(64px, 9vw, 112px); }
+  .notes h2 { margin: 0 0 8px; font-size: clamp(1.25rem, 2.4vw, 1.6rem); font-weight: 600; letter-spacing: -0.02em; }
+  .notes p, .notes li { margin: 0; color: var(--text-secondary); font-size: 16px; text-wrap: pretty; }
+  .notes ul { margin: 10px 0 0; padding-left: 1.2em; display: grid; gap: 6px; }
+  .notes code { font-family: var(--mono); font-size: .88em; color: var(--text); overflow-wrap: anywhere; }
+  .notes pre {
+    margin: 12px 0 0; padding: 14px 16px; border-radius: var(--r-md); background: #181818; color: #ededed;
+    font: 12.5px/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: break-word;
+  }
+  @media (min-width: 900px) { .notes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; } }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a href="../" aria-label="fframes home"><img src="../brand/fframes-wordmark.svg" alt="" width="103" height="26"></a>
+      <a class="back" href="../#live-title">More live demos</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <header class="intro">
+      <h1>Three ideas in math, <em>live</em></h1>
+      <p>Multiplying by a complex number turns the plane. A matrix moves all of space at once. A square wave is a pile of circles. Play with each one: every number on screen is computed as you move.</p>
+    </header>
+
+    <section class="panel" data-state="idle" data-playing="false" aria-label="Interactive math lesson">
+      <div class="stage">
+        <div class="frame" role="group" aria-label="Lesson picture and explanation"></div>
+        <p class="status" role="status">Loading the lesson…</p>
+      </div>
+      <div class="card" aria-live="polite">
+        <p class="label"></p>
+        <h2></h2>
+        <p class="body"></p>
+        <p class="facts"></p>
+        <div class="controls" hidden>
+          <button type="button" data-trigger="fewer" aria-label="Fewer circles">−</button>
+          <button type="button" data-trigger="more" aria-label="More circles">+</button>
+        </div>
+      </div>
+      <div class="bar">
+        <button class="play" type="button" aria-label="Play">
+          <svg class="resume" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11a.5.5 0 0 0 .77.42l8.5-5.5a.5.5 0 0 0 0-.84l-8.5-5.5A.5.5 0 0 0 4 2.5Z"/></svg>
+          <svg class="pause" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>
+        </button>
+        <div class="scenes" aria-label="Ideas"></div>
+        <p class="hint" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="notes">
+      <div>
+        <h2>For people</h2>
+        <p>The lesson plays on its own as a 36-second video. Point at a picture and it stops to let you explore:</p>
+        <ul>
+          <li><strong>Rotation is multiplication.</strong> The pointer sets the angle θ. Watch e<sup>iθ</sup> walk around the circle, its shadows become cos θ and sin θ, and land on −1 at θ = π.</li>
+          <li><strong>Matrices move space.</strong> The pointer moves where î lands. The grid follows, the shaded square's area is the determinant (purple when space flips) and the green lines are the eigenvectors, which only stretch.</li>
+          <li><strong>Any wave is circles.</strong> + and − change how many circles add up. The corners sharpen, but the overshoot at the jump stays near 9%: the Gibbs phenomenon.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>For AI agents</h2>
+        <p>The lesson is a Rust crate, <code>examples/math-ideas</code>. Its pictures are drawn from <code>src/math.rs</code>, whose tests state each idea as a checkable fact: |e<sup>iθ</sup>| = 1, Mv = λv, det = area, the Gibbs peak tending to 1.179. The words and numbers in each frame are real text in this page's SVG, not pixels, so they can be read here or from rendered frames:</p>
+<pre>cargo test -p math-ideas-example
+cargo run --release -p math-ideas-example -- frame Matrices@50%
+cargo run --release -p math-ideas-example -- strip -n 9
+cargo run --release -p math-ideas-example -- render</pre>
+        <p style="margin-top:12px">To build a lesson like this, add the fframes skill (<code>npx skills add https://fframes.studio</code>) and read its math guide, <code>references/math.md</code>.</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="importmap">{ "imports": { "@fframes/editor": "../demo/editor-shim.js" } }</script>
+  <script type="module">
+    const panel = document.querySelector(".panel");
+    const frameEl = panel.querySelector(".frame");
+    const status = panel.querySelector(".status");
+    const playButton = panel.querySelector(".play");
+    const scenesEl = panel.querySelector(".scenes");
+    const hint = panel.querySelector(".hint");
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const HINTS = {
+      Rotation: "Point at the circle to set the angle.",
+      Matrices: "Point at the grid to move î.",
+      Fourier: "Press + and − to add or remove circles.",
+    };
+    const LABELS = { Rotation: "Rotation", Matrices: "Matrices", Fourier: "Circles" };
+
+    let player;
+    let scenes = [];
+    let currentScene = -1;
+
+    function syncPlaying() {
+      panel.dataset.playing = String(Boolean(player?.playing));
+      playButton.setAttribute("aria-label", player?.playing ? "Pause" : "Play");
+    }
+
+    const card = panel.querySelector(".card");
+    const cardParts = {
+      label: card.querySelector(".label"),
+      title: card.querySelector("h2"),
+      body: card.querySelector(".body"),
+      facts: card.querySelector(".facts"),
+    };
+    let lastCardText = "";
+    // Copies the frame's words into the card. The SVG keeps its text nodes between frames, so this
+    // reads a handful of strings and writes only when they changed.
+    function mirrorText() {
+      const read = role => [...frameEl.querySelectorAll(`[data-role="${role}"]`)].map(el => el.textContent.replace(/\u00a0/g, " "));
+      const parts = { label: read("label")[0] ?? "", title: read("title")[0] ?? "", body: read("body").join(" "), facts: read("fact").join("\n") };
+      const text = JSON.stringify(parts);
+      if (text === lastCardText) return;
+      lastCardText = text;
+      for (const [key, el] of Object.entries(cardParts)) el.textContent = parts[key];
+    }
+
+    function showFrame(frame) {
+      mirrorText();
+      const index = scenes.findIndex(scene => frame >= scene.start && frame < scene.end);
+      if (index === currentScene) return;
+      currentScene = index;
+      for (const [i, button] of [...scenesEl.children].entries()) button.setAttribute("aria-current", String(i === index));
+      const scene = scenes[index];
+      hint.textContent = scene ? (HINTS[scene.name] ?? "") : "";
+      card.querySelector(".controls").hidden = scene?.name !== "Fourier";
+    }
+
+    async function loadFonts(bridge) {
+      bridge.populate_static_fonts_db_with_static_fonts();
+      const faces = [];
+      for (let i = 0; ; i++) {
+        const font = bridge.get_static_font_data_by_index(i);
+        if (!font) break;
+        const { info, data } = font;
+        if (!info.name) continue;
+        const face = new FontFace(info.name, data.slice().buffer, {
+          weight: String(info.weight),
+          style: String(info.style).toLowerCase(),
+        });
+        faces.push(face.load().then(loaded => document.fonts.add(loaded)));
+      }
+      await Promise.all(faces);
+    }
+
+    function readScenes(meta) {
+      const timeline = meta.scenesTimeline;
+      const list = Array.isArray(timeline) ? timeline : timeline?.scenes ?? [];
+      return list
+        .map(scene => ({
+          name: scene.name,
+          start: scene.start_frame ?? scene.startFrame ?? scene.start,
+          end: scene.end_frame ?? scene.endFrame ?? scene.end,
+        }))
+        .filter(scene => scene.name && Number.isFinite(scene.start) && Number.isFinite(scene.end));
+    }
+
+    try {
+      if (typeof WebAssembly !== "object") throw new Error("WebAssembly is not available");
+      globalThis.__fframes_get_video_frame ??= () => null;
+      const [wasm, runtime] = await Promise.all([import("./math-ideas.js"), import("../demo/fframes-live.js")]);
+      await wasm.default();
+      const bridge = wasm.create_wasm_bridge();
+      await loadFonts(bridge);
+      const meta = await bridge.prepare();
+      scenes = readScenes(meta);
+      scenesEl.replaceChildren(...scenes.map(scene => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = LABELS[scene.name] ?? scene.name;
+        // Jump past the title's entrance and stay there to explore.
+        button.addEventListener("click", () => {
+          player.pause();
+          player.seek(scene.start + 30);
+          syncPlaying();
+        });
+        return button;
+      }));
+      player = runtime.mount(bridge, frameEl, {
+        fps: meta.fps || 30,
+        durationInFrames: meta.durationInFrames,
+        autoplay: !reduceMotion,
+        keepAlive: true,
+        valuesRoot: panel,
+        onFrame: showFrame,
+      });
+      if (reduceMotion) player.seek(30);
+      panel.dataset.state = "ready";
+      syncPlaying();
+    } catch (error) {
+      console.error(error);
+      panel.dataset.state = "error";
+      status.textContent = "The lesson could not start in this browser.";
+    }
+
+    for (const button of card.querySelectorAll("[data-trigger]")) {
+      button.addEventListener("click", () => player?.trigger(button.dataset.trigger));
+    }
+    playButton.addEventListener("click", () => {
+      if (!player) return;
+      if (player.playing) player.pause();
+      else player.play();
+      syncPlaying();
+    });
+    // Exploring a picture holds the timeline on that idea; Play moves on.
+    frameEl.addEventListener("pointerdown", () => {
+      if (player?.playing) {
+        player.pause();
+        syncPlaying();
+      }
+    });
+    frameEl.addEventListener("pointerenter", event => {
+      if (event.pointerType === "mouse" && player?.playing) {
+        player.pause();
+        syncPlaying();
+      }
+    });
+  </script>
+</body>
+</html>
