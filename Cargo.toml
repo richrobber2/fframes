@@ -21,6 +21,8 @@ members = [
     "examples/audio-announce/editor/editor-bridge",
     "examples/hello-world",
     "examples/hello-world/editor/editor-bridge",
+    "examples/dot-field",
+    "examples/dot-field/editor/editor-bridge",
     "examples/marketing",
     "examples/marketing/editor/editor-bridge",
     "examples/tiktok",

@@ -85,7 +85,7 @@ check-wasm example:
   cd examples/{{example}}/editor/editor-bridge && cargo check --lib --target wasm32-unknown-unknown
 
 check-examples:
-  just check-wasm hello-world && just check-wasm podcast && just check-wasm tiktok && just check-wasm beta && just check-wasm low-poly-art && just check-wasm teej-podcast && just check-wasm motion-graphics && just check-wasm shaders && just check-wasm neon-triangle
+  just check-wasm hello-world && just check-wasm podcast && just check-wasm tiktok && just check-wasm beta && just check-wasm low-poly-art && just check-wasm teej-podcast && just check-wasm motion-graphics && just check-wasm shaders && just check-wasm neon-triangle && just check-wasm dot-field
 
 install-ffmpeg version: 
   git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
@@ -107,11 +107,13 @@ md file="AGENTS.md":
 landing-video input:
   scripts/landing-video.sh {{input}}
 
-# Rebuild the landing page's live hello-world demo (needs wasm-bindgen-cli matching the workspace's wasm-bindgen)
+# Rebuild the landing page's live demos (hello-world and the dot-field page) (needs wasm-bindgen-cli matching the workspace's wasm-bindgen)
 landing-demo:
   cd examples/hello-world/editor/editor-bridge && cargo build --lib --release --target wasm32-unknown-unknown
   wasm-bindgen --target web --no-typescript --out-dir landing/demo --out-name hello-world target/wasm32-unknown-unknown/release/hello_world_bridge_example.wasm
   cp fframes-live/fframes-live.js landing/demo/
+  cd examples/dot-field/editor/editor-bridge && cargo build --lib --release --target wasm32-unknown-unknown
+  wasm-bindgen --target web --no-typescript --out-dir landing/dots --out-name dot-field target/wasm32-unknown-unknown/release/dot_field_bridge_example.wasm
 
 # Build and launch the browser preview; pass --check for a playback smoke test.
 preview *ARGS:

@@ -39,29 +39,57 @@ function parseElement(markup) {
 
 /**
  * Applies `render_live` operations to `host`, whose only child is the frame's root `<svg>`.
- * Returns the root `<svg>`.
+ * `ops` is `[numbers, strings, count]`: `numbers` holds `[op, path length, ...path]` per operation
+ * and `strings` their string arguments, each followed by "\0". Returns the root `<svg>`.
  */
 export function applyOps(host, ops) {
-  for (const [op, path, a, b] of ops) {
-    if (op === OP_REPLACE && path.length === 0) {
-      host.innerHTML = a;
+  const [numbers, packed] = ops;
+  if (numbers.length === 0) return host.firstElementChild;
+  const strings = packed.split("\0");
+  let s = 0;
+  // Consecutive operations usually target the same element; reuse it when the path repeats.
+  let lastStart = -1;
+  let lastLength = -1;
+  let node = null;
+  for (let i = 0; i < numbers.length; ) {
+    const op = numbers[i];
+    const length = numbers[i + 1];
+    const start = i + 2;
+    i = start + length;
+
+    if (op === OP_REPLACE && length === 0) {
+      host.innerHTML = strings[s++];
+      lastStart = -1;
       continue;
     }
-    let node = host.firstElementChild;
-    for (const index of path) node = node?.children[index];
-    if (!node) throw new Error(`fframes live: no element at path ${Array.from(path).join("/")}`);
+
+    let same = length === lastLength && node !== null;
+    for (let k = 0; same && k < length; k++) same = numbers[start + k] === numbers[lastStart + k];
+    if (!same) {
+      node = host.firstElementChild;
+      for (let k = 0; k < length && node; k++) node = node.children[numbers[start + k]];
+      if (!node) throw new Error(`fframes live: no element at path ${Array.from(numbers.subarray(start, i)).join("/")}`);
+      lastStart = start;
+      lastLength = length;
+    }
+
     if (op === OP_SET) {
-      const ns = namespaceOf(a);
-      if (ns) node.setAttributeNS(ns, a, b);
-      else node.setAttribute(a, b);
+      const name = strings[s++];
+      const value = strings[s++];
+      const ns = namespaceOf(name);
+      if (ns) node.setAttributeNS(ns, name, value);
+      else node.setAttribute(name, value);
     } else if (op === OP_REMOVE) {
-      const ns = namespaceOf(a);
-      if (ns) node.removeAttributeNS(ns, a.slice(a.indexOf(":") + 1));
-      else node.removeAttribute(a);
+      const name = strings[s++];
+      const ns = namespaceOf(name);
+      if (ns) node.removeAttributeNS(ns, name.slice(name.indexOf(":") + 1));
+      else node.removeAttribute(name);
     } else if (op === OP_TEXT) {
-      node.textContent = a;
+      node.textContent = strings[s++];
     } else if (op === OP_REPLACE) {
-      node.replaceWith(parseElement(a));
+      const replacement = parseElement(strings[s++]);
+      node.replaceWith(replacement);
+      node = replacement;
     }
   }
   return host.firstElementChild;
@@ -75,7 +103,11 @@ export function applyOps(host, ops) {
  * - `loop` (default true): wrap the timeline; otherwise stop on the last frame.
  * - `autoplay` (default true): start playing the timeline.
  * - `valuesRoot` (default document): where to look for `[data-fframes-value]` fields.
- * - `onFrame(frame)`: called after each rendered frame.
+ * - `strategy` (default "diff"): "replace" rebuilds the whole SVG every frame instead of applying
+ *   changes, which is how frames were shown before the live runtime. Only useful to compare.
+ * - `onFrame(frame, stats)`: called after each rendered frame. `stats.renderMs` is the time in
+ *   WASM (render and diff), `stats.applyMs` the time updating the DOM, `stats.ops` the number of
+ *   DOM operations (0 with "replace").
  */
 export function mount(bridge, element, options) {
   const {
@@ -86,6 +118,8 @@ export function mount(bridge, element, options) {
     valuesRoot = document,
     onFrame = () => {},
   } = options;
+  let strategy = options.strategy ?? "diff";
+  const stats = { renderMs: 0, applyMs: 0, ops: 0 };
   const duration = Math.max(1, durationInFrames);
   const sessionStart = performance.now();
 
@@ -103,8 +137,24 @@ export function mount(bridge, element, options) {
 
   function render(now) {
     bridge.set_time((now - sessionStart) / 1000);
-    svg = applyOps(element, bridge.render_live(BigInt(frame)));
-    onFrame(frame);
+    const start = performance.now();
+    if (strategy === "replace") {
+      const markup = bridge.render_frame(BigInt(frame));
+      const rendered = performance.now();
+      element.innerHTML = markup;
+      svg = element.firstElementChild;
+      stats.renderMs = rendered - start;
+      stats.applyMs = performance.now() - rendered;
+      stats.ops = 0;
+    } else {
+      const ops = bridge.render_live(BigInt(frame));
+      const rendered = performance.now();
+      svg = applyOps(element, ops);
+      stats.renderMs = rendered - start;
+      stats.applyMs = performance.now() - rendered;
+      stats.ops = ops[2];
+    }
+    onFrame(frame, stats);
   }
 
   function tick(now) {
@@ -250,6 +300,15 @@ export function mount(bridge, element, options) {
     },
     get fps() {
       return fps;
+    },
+    get strategy() {
+      return strategy;
+    },
+    /** Switches between "diff" and "replace"; the next frame is sent whole. */
+    setStrategy(value) {
+      strategy = value;
+      bridge.reset_live();
+      poke();
     },
     seek(to) {
       frame = Math.max(0, Math.min(duration - 1, Math.round(to)));

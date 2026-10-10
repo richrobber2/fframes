@@ -364,6 +364,18 @@
     color: var(--text-secondary);
     text-wrap: pretty;
   }
+  .live-more {
+    margin: 14px 0 0;
+    padding-left: 12px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .live-more a {
+    color: var(--text);
+    text-underline-offset: 3px;
+  }
+  .live-more a::after { content: " →"; }
+  .live-more a:hover { color: var(--orange); }
   .live-head code {
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: .9em;
@@ -776,6 +788,7 @@
           <label class="live-name">Name <input type="text" value="World" maxlength="24" autocomplete="off" spellcheck="false" data-fframes-value="name"></label>
         </div>
       </div>
+      <p class="live-more"><a href="dots/">See a heavier one: 2,304 dots computed in Rust every frame, with a live speed comparison</a></p>
     </section>
   </main>
 

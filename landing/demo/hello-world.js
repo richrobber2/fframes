@@ -236,11 +236,11 @@ function passArrayF32ToWasm0(arg, malloc) {
     return ptr;
 }
 function __wbg_adapter_34(arg0, arg1, arg2) {
-    wasm.closure191_externref_shim(arg0, arg1, arg2);
+    wasm.closure193_externref_shim(arg0, arg1, arg2);
 }
 
 function __wbg_adapter_112(arg0, arg1, arg2, arg3) {
-    wasm.closure263_externref_shim(arg0, arg1, arg2, arg3);
+    wasm.closure264_externref_shim(arg0, arg1, arg2, arg3);
 }
 
 const AudioDataFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -907,14 +907,6 @@ function __wbg_get_imports() {
         const ret = new Uint32Array(arg0, arg1 >>> 0, arg2 >>> 0);
         return ret;
     };
-    imports.wbg.__wbg_newwithlength_c4c419ef0bc8a1f8 = function(arg0) {
-        const ret = new Array(arg0 >>> 0);
-        return ret;
-    };
-    imports.wbg.__wbg_of_1483b62f6e3f9868 = function(arg0, arg1, arg2, arg3) {
-        const ret = Array.of(arg0, arg1, arg2, arg3);
-        return ret;
-    };
     imports.wbg.__wbg_of_4a05197bfc89556f = function(arg0, arg1, arg2) {
         const ret = Array.of(arg0, arg1, arg2);
         return ret;
@@ -984,8 +976,8 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper484 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 192, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper481 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 194, __wbg_adapter_34);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

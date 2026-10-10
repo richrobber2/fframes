@@ -691,8 +691,12 @@ fframes::svgr!(<rect data-action="menu" role="button" tabindex="0" aria-label="M
 - File renders pass no input: every query answers "untouched", so the same code renders its
   resting state into a video. Keep that state meaningful.
 - Elements are matched by position; when an element's children change count or tags it is
-  replaced whole. Keep interactive elements at a stable place in the tree (toggle attributes
-  rather than adding/removing siblings) so they keep focus.
+  replaced whole. Keep interactive elements at a stable place in the tree (toggle attributes,
+  hide with `opacity="0"`, rather than adding/removing siblings) so they keep focus and the
+  frame is not rebuilt.
+- Every changed attribute is one DOM call: round animated values to what the eye can see.
+  `examples/dot-field` (2,304 dots, `landing/dots/`) is the heavy example and benchmark; the page
+  switches between the live diff and re-rendering the whole SVG (`mount(..., { strategy })`).
 
 ### 10. Verify before you finish
 

@@ -949,6 +949,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "dot-field-bridge-example"
+version = "1.2.0"
+dependencies = [
+ "dot-field-example",
+ "fframes-editor-controller",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "dot-field-example"
+version = "1.2.0"
+dependencies = [
+ "fframes",
+]
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

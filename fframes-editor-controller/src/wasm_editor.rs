@@ -336,13 +336,9 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
     /// Renders the frame and returns only the DOM operations since the previous live frame.
     pub fn render_live(&self, frame: i64) -> Result<JsValue, JsValue> {
         let svg = self.render_frame(frame);
-        let ops = self
-            .live
-            .lock()
-            .unwrap()
-            .next(&svg)
-            .map_err(|err| JsValue::from_str(&err))?;
-        Ok(wasm_live::ops_to_js(&ops))
+        let mut live = self.live.lock().unwrap();
+        let ops = live.next(svg).map_err(|err| JsValue::from_str(&err))?;
+        Ok(wasm_live::ops_to_js(ops))
     }
 
     /// Makes the next live frame mount whole, e.g. after the runtime lost its DOM.

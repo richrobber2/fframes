@@ -82,13 +82,11 @@ impl Scene for HelloWorldVideo<'_> {
         let square_fill = SQUARE_COLORS[clicks as usize % SQUARE_COLORS.len()];
         let square_radius = if input.is_hovered("square") { 40 } else { 0 };
 
-        let pointer = match input.pointer {
-            Some((x, y)) => fframes::svgr!(
-                <circle cx={x} cy={y} r={if input.pointer_down { 26 } else { 18 }}
-                        fill="none" stroke="#fb6a22" stroke-width="6" pointer-events="none" />
-            ),
-            None => fframes::Svgr::empty(),
-        };
+        // Always drawn, hidden without a pointer: adding and removing it would change the shape of
+        // the tree and make the live runtime replace the whole frame (and the square with it).
+        let (pointer_x, pointer_y) = input.pointer.unwrap_or((0.0, 0.0));
+        let pointer_opacity = u8::from(input.pointer.is_some());
+        let pointer_radius = if input.pointer_down { 26 } else { 18 };
 
         fframes::svgr!(
             <svg
@@ -154,7 +152,8 @@ impl Scene for HelloWorldVideo<'_> {
                 </text>
 
                 // follows the pointer when the video runs live
-                {pointer}
+                <circle cx={pointer_x} cy={pointer_y} r={pointer_radius} opacity={pointer_opacity}
+                        fill="none" stroke="#fb6a22" stroke-width="6" pointer-events="none" />
             </svg>
         )
     }
