@@ -224,14 +224,17 @@ impl Frame {
             return get_visualization(self.index, self.fps, &input);
         }
 
+        // Frames past the end of the audio have no spectrum; average the ones that do.
         let frames_to_smooth = ((self.index - input.smooth_level)
             ..(self.index + input.smooth_level))
             .map(|i| get_visualization(i, self.fps, &input))
+            .filter(|bins| !bins.is_empty())
             .collect::<Vec<_>>();
+        let bins = frames_to_smooth.iter().map(Vec::len).min().unwrap_or(0);
 
-        (0..frames_to_smooth[1].len())
-            .map(|frame| {
-                frames_to_smooth.iter().map(|arr| arr[frame]).sum::<f32>()
+        (0..bins)
+            .map(|bin| {
+                frames_to_smooth.iter().map(|arr| arr[bin]).sum::<f32>()
                     / frames_to_smooth.len() as f32
             })
             .collect()

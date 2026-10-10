@@ -21,6 +21,18 @@ impl Scene for SpeakerScene<'_> {
 
     fn render_frame<'a>(&'a self, mut frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
         const TITLE_Y: usize = 350;
+        // Live (fframes-live) the page's fields replace the talk; file renders use the fields above.
+        let input = ctx.input();
+        let pick = |key: &str, fallback: &'a str| -> &'a str {
+            input
+                .value(key)
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or(fallback)
+        };
+        let speaker_name = pick("speaker", self.speaker_name);
+        let talk_title = pick("title", self.talk_title);
+        let talk_description = pick("description", self.talk_description);
+
         let tilt_angle = frame.animate(&fframes::timeline!(
           at 0.3, animate 0.4 => 1.2, animation::Easing::Linear,
           at 2.3 => 4.1, animate 1.2 => 0.8, animation::Easing::Linear
@@ -32,7 +44,7 @@ impl Scene for SpeakerScene<'_> {
             x: 90,
             y: TITLE_Y,
             font: FontQuery {
-                size: if self.talk_title.len() < 50 || self.talk_description.len() <= 300 {
+                size: if talk_title.len() < 50 || talk_description.len() <= 300 {
                     70
                 } else {
                     56
@@ -47,12 +59,12 @@ impl Scene for SpeakerScene<'_> {
         };
 
         let title_structure = frame
-            .text_break_lines_structure(ctx, self.talk_title, title_opts)
+            .text_break_lines_structure(ctx, talk_title, title_opts)
             .expect("failed to wrap the title");
 
         let speaker_name_width = fframes::estimate_text_width(
             ctx,
-            self.speaker_name,
+            speaker_name,
             EstimateTextWidthOptions {
                 font_family: "Inter 24pt",
                 font_size: 54,
@@ -71,9 +83,9 @@ impl Scene for SpeakerScene<'_> {
             x: 90,
             y: abstract_y,
             font: fframes::FontQuery {
-                size: if self.talk_description.len() > 600 {
+                size: if talk_description.len() > 600 {
                     32
-                } else if self.talk_description.len() > 300 {
+                } else if talk_description.len() > 300 {
                     36
                 } else {
                     48
@@ -88,7 +100,7 @@ impl Scene for SpeakerScene<'_> {
         };
 
         let abstract_text_structure = frame
-            .text_break_lines_structure(ctx, self.talk_description, abstract_opts)
+            .text_break_lines_structure(ctx, talk_description, abstract_opts)
             .expect("failed to wrap the abstract text");
 
         fframes::svgr!(
@@ -213,7 +225,7 @@ impl Scene for SpeakerScene<'_> {
                 font-family="Inter 24pt"
                 font-size="54"
               >
-                {self.speaker_name}
+                {speaker_name}
               </text>
             </g>
         )

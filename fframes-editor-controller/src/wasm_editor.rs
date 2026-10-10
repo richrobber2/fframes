@@ -99,9 +99,19 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
             fonts: Mutex::new(wasm_font_source::WasmFontSource::new()),
             scenes: Mutex::new(None),
             time_base: Mutex::new(None),
+            // Media embedded with `include_media_dir!` resolves without the page loading it. The
+            // editor still registers its own copies over HTTP (`add_*_source`), which replace these.
             media_provider: Mutex::new(fframes::DynamicMediaProvider::new(
-                HashMap::new(),
-                HashMap::new(),
+                static_media
+                    .get_all_audio_data()
+                    .into_iter()
+                    .map(|(audio, name)| (name.to_string(), audio.clone()))
+                    .collect(),
+                static_media
+                    .get_all_image_data()
+                    .into_iter()
+                    .map(|(image, name)| (name.to_string(), image.clone()))
+                    .collect(),
                 HashMap::new(),
                 HashMap::new(),
                 Vec::new(),
@@ -335,7 +345,14 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
 
     /// Renders the frame and returns only the DOM operations since the previous live frame.
     pub fn render_live(&self, frame: i64) -> Result<JsValue, JsValue> {
+        // Images go into the page as data URLs: a live page has no dev server to serve them.
+        fframes::media::IS_PREVIEW_RENDERING.with(|force_base64| {
+            force_base64.store(true, std::sync::atomic::Ordering::Relaxed);
+        });
         let svg = self.render_frame(frame);
+        fframes::media::IS_PREVIEW_RENDERING.with(|force_base64| {
+            force_base64.store(false, std::sync::atomic::Ordering::Relaxed);
+        });
         let mut live = self.live.lock().unwrap();
         let ops = live.next(svg).map_err(|err| JsValue::from_str(&err))?;
         Ok(wasm_live::ops_to_js(ops))

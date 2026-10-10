@@ -1,7 +1,8 @@
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock, PoisonError};
 
 use fframes::{
-    AudioMap, Color, FFramesContext, FontQuery, Frame, Svgr, Transform, animation::Easing,
+    AudioMap, Color, FFramesContext, FontQuery, Frame, Input, InteractionEvent, Svgr, Transform,
+    animation::Easing,
 };
 
 use crate::{MotionGraphicsMedia, SPRING_SNAPPY};
@@ -15,10 +16,17 @@ const LINE_HEIGHT_RATIO: f32 = 0.9;
 /// A single giant word/phrase that fills the entire frame.
 /// Supports multiple lines separated by `\n`.
 /// Meant to render behind a speaker as a background emphasis card.
+///
+/// Live (fframes-live) the viewer can type the text (`data-fframes-value="quote"`), click the card
+/// to replay its entrance, and the card drifts a little with the pointer.
 pub struct QuoteCardVideo<'a> {
     pub media: &'a MotionGraphicsMedia,
     pub text: &'a str,
     resolved_font_sizes: OnceLock<Vec<usize>>,
+    /// Font sizes of the last text typed live, measured once per change.
+    live_font_sizes: Mutex<Option<(String, Vec<usize>)>>,
+    /// `Input::time` when the entrance was last restarted live (new text or a click).
+    restarted_at: Mutex<Option<f32>>,
 }
 
 impl std::fmt::Debug for QuoteCardVideo<'_> {
@@ -35,6 +43,8 @@ impl<'a> QuoteCardVideo<'a> {
             media,
             text,
             resolved_font_sizes: OnceLock::new(),
+            live_font_sizes: Mutex::new(None),
+            restarted_at: Mutex::new(None),
         }
     }
 }
@@ -77,20 +87,58 @@ impl fframes::Video for QuoteCardVideo<'_> {
         AudioMap::none()
     }
 
+    fn on_event(&self, event: &InteractionEvent, input: &Input) {
+        let restart = match event {
+            InteractionEvent::Action(action) => action == "replay",
+            InteractionEvent::Value { key, .. } => key == "quote",
+            _ => false,
+        };
+        if restart {
+            *self
+                .restarted_at
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner) = Some(input.time);
+        }
+    }
+
     fn render_frame<'a>(&'a self, mut frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
-        let lines: Vec<&str> = self.text.lines().collect();
+        let input = ctx.input();
+        let text = input
+            .value("quote")
+            .filter(|text| !text.trim().is_empty())
+            .unwrap_or(self.text);
+        let lines: Vec<&str> = text.lines().collect();
         // Measuring text is only cached once the fonts could actually be
         // measured; until then every line falls back to the minimum size.
-        let font_sizes = match self.resolved_font_sizes.get() {
-            Some(sizes) => sizes.clone(),
-            None => match lines
+        let measure = |frame: &mut Frame| {
+            lines
                 .iter()
-                .map(|line| resolve_font_size(&mut frame, ctx, line))
+                .map(|line| resolve_font_size(frame, ctx, line))
                 .collect::<Option<Vec<usize>>>()
-            {
-                Some(sizes) => self.resolved_font_sizes.get_or_init(|| sizes).clone(),
-                None => vec![MIN_FONT_SIZE; lines.len()],
-            },
+        };
+        let font_sizes = if text == self.text {
+            match self.resolved_font_sizes.get() {
+                Some(sizes) => sizes.clone(),
+                None => match measure(&mut frame) {
+                    Some(sizes) => self.resolved_font_sizes.get_or_init(|| sizes).clone(),
+                    None => vec![MIN_FONT_SIZE; lines.len()],
+                },
+            }
+        } else {
+            let mut cache = self
+                .live_font_sizes
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            match cache.as_ref() {
+                Some((cached, sizes)) if cached == text => sizes.clone(),
+                _ => match measure(&mut frame) {
+                    Some(sizes) => {
+                        *cache = Some((text.to_string(), sizes.clone()));
+                        sizes
+                    }
+                    None => vec![MIN_FONT_SIZE; lines.len()],
+                },
+            }
         };
 
         // Calculate total block height to center vertically
@@ -100,25 +148,45 @@ impl fframes::Video for QuoteCardVideo<'_> {
             .sum();
         let start_y = 540.0 - total_height / 2.0;
 
+        // Live, a click or new text plays the entrance again from that moment.
+        let restarted = (*self
+            .restarted_at
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner))
+        .map(|at| input.time - at)
+        .filter(|&since| since < 2.2);
+        let sample = |animation: &fframes::animation::KeyFramesAnimation<f32>| match restarted {
+            Some(since) => frame.animate_at(animation, since),
+            None => frame.animate(animation),
+        };
+
         // Scale punch in (start big, spring down to 1.0)
-        let scale = frame.animate(&fframes::timeline!(
+        let scale = sample(&fframes::timeline!(
             at 0.0 => 0.8, animate 1.6_f32 => 1.0, SPRING_SNAPPY,
         ));
 
         // Slide up from below
-        let slide_y = frame.animate(&fframes::timeline!(
+        let slide_y = sample(&fframes::timeline!(
             at 0.0 => 0.6, animate 80.0_f32 => 0.0, SPRING_SNAPPY,
         ));
 
         // Fade in
-        let opacity = frame.animate(&fframes::timeline!(
+        let opacity = sample(&fframes::timeline!(
             at 0.0 => 0.3, animate 0.0_f32 => 1.0, Easing::EaseOut,
         ));
 
         // Fade out
-        let fade_out = frame.animate(&fframes::timeline!(
+        let fade_out = sample(&fframes::timeline!(
             at 2.2 => 2.8, animate 1.0_f32 => 0.0, Easing::EaseIn,
         ));
+
+        // A little depth live: the card leans away from the pointer. Nothing in file renders.
+        let (drift_x, drift_y) = input.pointer.map_or((0.0, 0.0), |(x, y)| {
+            (
+                f64::from((960.0 - x) / 960.0 * 28.0),
+                f64::from((540.0 - y) / 540.0 * 18.0),
+            )
+        });
 
         let mut y_offset = start_y;
         let text_elements: Vec<_> = lines
@@ -155,10 +223,14 @@ impl fframes::Video for QuoteCardVideo<'_> {
                 <rect width={Self::WIDTH} height={Self::HEIGHT} fill="black" />
 
                 <g
+                    data-action="replay"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Replay the entrance"
                     opacity={opacity * fade_out}
                     transform={Transform {
-                        translate_x: 960.0 * (1.0 - f64::from(scale)),
-                        translate_y: 540.0 * (1.0 - f64::from(scale)) + f64::from(slide_y),
+                        translate_x: 960.0 * (1.0 - f64::from(scale)) + drift_x,
+                        translate_y: 540.0 * (1.0 - f64::from(scale)) + f64::from(slide_y) + drift_y,
                         scale: fframes::Scale { x: f64::from(scale), y: f64::from(scale) },
                         ..Default::default()
                     }}

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fframes live</title>
+<meta name="color-scheme" content="light">
+<!-- Generic page for `just live <example>`: runs the example's WASM bridge with fframes-live.
+     Optional ./live.json (copied from the example's folder) adds a title, a hint and controls:
+     { "title": "…", "hint": "…", "keepAlive": false, "back": { "href": "../", "label": "fframes" },
+       "fields": [{ "key": "name", "label": "Name", "value": "World", "multiline": false }],
+       "buttons": [{ "action": "replay", "label": "Replay" }] } -->
+<style>
+  :root {
+    --font: ui-sans-serif, -apple-system, system-ui, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --text: #0d0d0d;
+    --muted: #5d5d5d;
+    --border: rgb(13 13 13 / .12);
+    --ring: #0169cc;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 var(--font); color: var(--text); background: #f6f5f2; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 14px; }
+  header { display: grid; gap: 4px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+  .back { font-size: 14px; color: var(--muted); text-decoration: none; }
+  .back:hover { color: var(--text); }
+  .panel { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 8px 24px -12px rgb(0 0 0 / .2); }
+  .stage { position: relative; background: #000; }
+  .frame, .frame > svg { display: block; width: 100%; height: auto; }
+  .frame [data-action] { cursor: pointer; }
+  .status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; color: #ddd; text-align: center; }
+  [data-state="ready"] .status { display: none; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px; border-top: 1px solid var(--border); }
+  button { font: 500 14px/1 var(--font); height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: #fff; color: var(--text); cursor: pointer; }
+  button.primary { background: #181818; color: #fff; border-color: #181818; min-width: 72px; }
+  button[aria-current="true"] { border-color: var(--text); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  input[type="range"] { flex: 1 1 220px; min-width: 0; accent-color: #fb6a22; }
+  .time, .stats { font: 13px/1 var(--mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .controls[hidden] { display: none; }
+  label { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+  label textarea { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font: 15px/1.3 var(--font); width: 260px; max-width: 100%; resize: vertical; }
+  label input { height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; font: 15px var(--font); min-width: 0; width: 220px; max-width: 100%; }
+</style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>fframes live</h1>
+      <p class="hint">The video runs in the page: pointer, clicks and keys reach <code>ctx.input()</code>.</p>
+    </header>
+    <section class="panel" data-state="idle">
+      <div class="stage">
+        <div class="frame" role="group" aria-label="Live video"></div>
+        <p class="status" role="status">Loading…</p>
+      </div>
+      <div class="bar">
+        <button class="primary play" type="button">Play</button>
+        <input class="scrub" type="range" min="0" max="0" value="0" aria-label="Frame">
+        <span class="time">0 / 0</span>
+        <span class="scenes"></span>
+        <span class="stats" aria-hidden="true"></span>
+      </div>
+      <div class="bar controls" hidden></div>
+    </section>
+  </main>
+
+  <script type="importmap">{ "imports": { "@fframes/editor": "./editor-shim.js" } }</script>
+  <script type="module">
+    const panel = document.querySelector(".panel");
+    const frameEl = panel.querySelector(".frame");
+    const status = panel.querySelector(".status");
+    const play = panel.querySelector(".play");
+    const scrub = panel.querySelector(".scrub");
+    const time = panel.querySelector(".time");
+    const scenesEl = panel.querySelector(".scenes");
+    const stats = panel.querySelector(".stats");
+    const controls = panel.querySelector(".controls");
+
+    const config = await fetch("./live.json").then(r => (r.ok ? r.json() : {})).catch(() => ({}));
+    if (config.title) {
+      document.title = `${config.title} · fframes live`;
+      document.querySelector("h1").textContent = config.title;
+    }
+    if (config.hint) document.querySelector(".hint").textContent = config.hint;
+    if (config.back) {
+      const link = document.createElement("a");
+      link.href = config.back.href;
+      link.textContent = `← ${config.back.label ?? "Back"}`;
+      link.className = "back";
+      document.querySelector("header").prepend(link);
+    }
+
+    let player;
+    let scenes = [];
+    const samples = [];
+
+    function syncPlay() {
+      play.textContent = player?.playing ? "Pause" : "Play";
+    }
+
+    try {
+      globalThis.__fframes_get_video_frame ??= () => null;
+      const [wasm, runtime] = await Promise.all([import("./bridge.js"), import("./fframes-live.js")]);
+      await wasm.default();
+      const bridge = wasm.create_wasm_bridge();
+      bridge.populate_static_fonts_db_with_static_fonts();
+      const faces = [];
+      for (let i = 0; ; i++) {
+        const font = bridge.get_static_font_data_by_index(i);
+        if (!font) break;
+        if (!font.info.name) continue;
+        const face = new FontFace(font.info.name, font.data.slice().buffer, {
+          weight: String(font.info.weight),
+          style: String(font.info.style).toLowerCase(),
+        });
+        faces.push(face.load().then(loaded => document.fonts.add(loaded)));
+      }
+      await Promise.all(faces);
+      const meta = await bridge.prepare();
+      const list = Array.isArray(meta.scenesTimeline) ? meta.scenesTimeline : meta.scenesTimeline?.scenes ?? [];
+      scenes = list.map(s => ({ name: s.name, start: s.start_frame ?? s.start, end: s.end_frame ?? s.end }));
+      scrub.max = Math.max(0, meta.durationInFrames - 1);
+
+      for (const field of config.fields ?? []) {
+        const label = document.createElement("label");
+        const input = document.createElement(field.multiline ? "textarea" : "input");
+        if (field.multiline) input.rows = 2;
+        else input.type = "text";
+        input.value = field.value ?? "";
+        input.dataset.fframesValue = field.key;
+        input.autocomplete = "off";
+        label.append(field.label ?? field.key, input);
+        controls.append(label);
+      }
+      for (const button of config.buttons ?? []) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.textContent = button.label ?? button.action;
+        element.addEventListener("click", () => player?.trigger(button.action));
+        controls.append(element);
+      }
+      controls.hidden = controls.children.length === 0;
+
+      scenesEl.replaceChildren(...scenes.map(scene => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = scene.name.replace(/^.*::/, "").replace(/<.*$/, "");
+        button.addEventListener("click", () => player.seek(scene.start));
+        return button;
+      }));
+
+      player = runtime.mount(bridge, frameEl, {
+        fps: meta.fps || 30,
+        durationInFrames: meta.durationInFrames,
+        keepAlive: Boolean(config.keepAlive),
+        valuesRoot: panel,
+        onFrame(frame, s) {
+          scrub.value = frame;
+          time.textContent = `${frame} / ${meta.durationInFrames}`;
+          [...scenesEl.children].forEach((button, i) => button.setAttribute("aria-current", String(frame >= scenes[i].start && frame < scenes[i].end)));
+          samples.push({ at: performance.now(), ms: s.renderMs + s.applyMs, ops: s.ops });
+          while (samples.length > 60) samples.shift();
+        },
+      });
+      setInterval(() => {
+        if (samples.length < 2) return;
+        const span = (samples.at(-1).at - samples[0].at) / 1000;
+        const ms = samples.reduce((a, s) => a + s.ms, 0) / samples.length;
+        const ops = samples.reduce((a, s) => a + s.ops, 0) / samples.length;
+        stats.textContent = `${Math.round((samples.length - 1) / span)} fps · ${ms.toFixed(1)} ms · ${Math.round(ops)} ops`;
+      }, 500);
+      panel.dataset.state = "ready";
+      syncPlay();
+    } catch (error) {
+      console.error(error);
+      panel.dataset.state = "error";
+      status.textContent = `Could not start: ${error?.message ?? error}`;
+    }
+
+    play.addEventListener("click", () => {
+      if (!player) return;
+      if (player.playing) player.pause();
+      else player.play();
+      syncPlay();
+    });
+    scrub.addEventListener("input", () => player?.seek(Number(scrub.value)));
+  </script>
+</body>
+</html>

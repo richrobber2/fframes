@@ -697,6 +697,11 @@ fframes::svgr!(<rect data-action="menu" role="button" tabindex="0" aria-label="M
 - Every changed attribute is one DOM call: round animated values to what the eye can see.
   `examples/dot-field` (2,304 dots, `landing/dots/`) is the heavy example and benchmark; the page
   switches between the live diff and re-rendering the whole SVG (`mount(..., { strategy })`).
+- `just live <example>` runs any example with an editor bridge as a live page (`--check` smoke-tests
+  it, `--export <dir>` writes a static page); `live.json` next to `Cargo.toml` adds text fields and
+  buttons. `motion-graphics` (quote card: type the text, click to replay) and
+  `conference-splash-screen` (speaker card as an editable template) read their text from
+  `ctx.input().value(...)` and fall back to their fields in file renders.
 - `examples/math-ideas` (`landing/math/`) teaches Euler's formula, matrices and Fourier series
   interactively; `skills/fframes-video/references/math.md` is the guide for math explainers:
   compute every value in a tested module, one idea and one moving parameter per scene.

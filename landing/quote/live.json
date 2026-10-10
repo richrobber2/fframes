@@ -1,0 +1,22 @@
+{
+  "title": "Quote card",
+  "hint": "Type your own text (Enter for a new line); click the card to replay its entrance.",
+  "fields": [
+    {
+      "key": "quote",
+      "label": "Text",
+      "value": "PERFORMANCE",
+      "multiline": true
+    }
+  ],
+  "buttons": [
+    {
+      "action": "replay",
+      "label": "Replay"
+    }
+  ],
+  "back": {
+    "href": "../",
+    "label": "fframes"
+  }
+}

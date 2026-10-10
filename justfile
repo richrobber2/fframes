@@ -116,6 +116,11 @@ landing-demo:
   wasm-bindgen --target web --no-typescript --out-dir landing/dots --out-name dot-field target/wasm32-unknown-unknown/release/dot_field_bridge_example.wasm
   cd examples/math-ideas/editor/editor-bridge && cargo build --lib --release --target wasm32-unknown-unknown
   wasm-bindgen --target web --no-typescript --out-dir landing/math --out-name math-ideas target/wasm32-unknown-unknown/release/math_ideas_bridge_example.wasm
+  node scripts/live.mjs motion-graphics --export landing/quote
+
+# Run an example as an interactive animation in the browser (fframes-live); --check smoke-tests it headless.
+live example *ARGS:
+  node scripts/live.mjs {{example}} {{ARGS}}
 
 # Build and launch the browser preview; pass --check for a playback smoke test.
 preview *ARGS:

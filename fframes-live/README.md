@@ -22,6 +22,23 @@ preview"). Load the fonts the video uses before mounting (see `landing/index.htm
 bridge's `@fframes/editor` import to a module exporting `load_audio_wasm_callback` with an import
 map when the page does not include the editor.
 
+## Run any example live
+
+```bash
+just live motion-graphics              # builds the bridge, serves http://127.0.0.1:5180/
+just live conference-splash-screen --check                     # headless smoke test, exit 1 on errors
+just live motion-graphics --export landing/quote               # static page for hosting
+```
+
+`scripts/live.mjs` builds the example's editor bridge, generates the JS bindings and serves
+`page.html`: the frame, play/pause, a scrubber, scene buttons and fps/ms/ops readouts. A
+`live.json` next to the example's `Cargo.toml` adds a title, a hint, a back link and controls:
+text fields (`"multiline": true` for a textarea) bound to `ctx.input().value(key)`, and buttons that
+trigger actions. Media embedded with `include_media_dir!` (fonts, images, audio for visualisations)
+works without the editor; media the editor loads over HTTP (runtime media folders, video files)
+does not. Today hello-world, dot-field, math-ideas, motion-graphics, conference-splash-screen,
+shaders and neon-triangle run (shader layers show as placeholders in browsers).
+
 ## How it renders
 
 Every animation frame the runtime calls `bridge.render_live(frame)`. Rust renders the frame, compares

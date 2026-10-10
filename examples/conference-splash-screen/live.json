@@ -1,0 +1,9 @@
+{
+  "title": "Conference speaker card",
+  "hint": "A template: type a talk and watch the card lay itself out. Text is measured and wrapped in Rust as you type.",
+  "fields": [
+    { "key": "speaker", "label": "Speaker", "value": "David Sancho Moreno" },
+    { "key": "title", "label": "Talk", "value": "My Awesome talk about OCaml and something else to make the title long enough", "multiline": true },
+    { "key": "description", "label": "Abstract", "value": "This is a description of the talk that is long enough to wrap into multiple lines.", "multiline": true }
+  ]
+}

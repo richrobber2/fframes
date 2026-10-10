@@ -37,6 +37,15 @@ function parseElement(markup) {
   return holder.firstElementChild;
 }
 
+// A root <svg> with a size but no viewBox draws at that size and cannot be scaled by CSS. Give
+// it the matching viewBox so the page can size it; frames never set viewBox, so it stays.
+function fitRoot(svg) {
+  if (!svg || svg.hasAttribute("viewBox")) return;
+  const width = parseFloat(svg.getAttribute("width"));
+  const height = parseFloat(svg.getAttribute("height"));
+  if (width > 0 && height > 0) svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+}
+
 /**
  * Applies `render_live` operations to `host`, whose only child is the frame's root `<svg>`.
  * `ops` is `[numbers, strings, count]`: `numbers` holds `[op, path length, ...path]` per operation
@@ -59,6 +68,7 @@ export function applyOps(host, ops) {
 
     if (op === OP_REPLACE && length === 0) {
       host.innerHTML = strings[s++];
+      fitRoot(host.firstElementChild);
       lastStart = -1;
       continue;
     }
