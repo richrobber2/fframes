@@ -89,6 +89,9 @@ function MakePlayer(Wasm) {
         svg: Utils.$$Option.some(Wasm.controller.render_frame(BigInt(0))),
         volume: volume,
         magnet: savedMagnet,
+        loopStart: 0,
+        loopEnd: Wasm.videoMeta.durationInFrames,
+        rangeLoop: false,
         zoom: savedZoom,
         viewportOffset: savedViewportOffset
       }) : ({
@@ -99,6 +102,9 @@ function MakePlayer(Wasm) {
         svg: undefined,
         volume: volume,
         magnet: savedMagnet,
+        loopStart: 0,
+        loopEnd: Wasm.videoMeta.durationInFrames,
+        rangeLoop: false,
         zoom: savedZoom,
         viewportOffset: savedViewportOffset
       });
@@ -139,35 +145,61 @@ function MakePlayer(Wasm) {
                     svg: state.svg,
                     volume: state.volume,
                     magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
                     zoom: state.zoom,
                     viewportOffset: state.viewportOffset
                   };
         case /* Play */1 :
-            if (state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames) {
-              return {
-                      frame: Utils.$$Option.unwrapOr(state.magnet, 0),
-                      startPlayingFrame: state.startPlayingFrame,
-                      playState: /* Playing */0,
-                      fpsLimit: state.fpsLimit,
-                      svg: state.svg,
-                      volume: state.volume,
-                      magnet: state.magnet,
-                      zoom: state.zoom,
-                      viewportOffset: state.viewportOffset
-                    };
-            } else {
-              return {
-                      frame: state.frame,
-                      startPlayingFrame: state.frame,
-                      playState: /* Playing */0,
-                      fpsLimit: state.fpsLimit,
-                      svg: state.svg,
-                      volume: state.volume,
-                      magnet: state.magnet,
-                      zoom: state.zoom,
-                      viewportOffset: state.viewportOffset
-                    };
+            if (!state.rangeLoop) {
+              if (state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames) {
+                return {
+                        frame: Utils.$$Option.unwrapOr(state.magnet, 0),
+                        startPlayingFrame: state.startPlayingFrame,
+                        playState: /* Playing */0,
+                        fpsLimit: state.fpsLimit,
+                        svg: state.svg,
+                        volume: state.volume,
+                        magnet: state.magnet,
+                        loopStart: state.loopStart,
+                        loopEnd: state.loopEnd,
+                        rangeLoop: state.rangeLoop,
+                        zoom: state.zoom,
+                        viewportOffset: state.viewportOffset
+                      };
+              } else {
+                return {
+                        frame: state.frame,
+                        startPlayingFrame: state.frame,
+                        playState: /* Playing */0,
+                        fpsLimit: state.fpsLimit,
+                        svg: state.svg,
+                        volume: state.volume,
+                        magnet: state.magnet,
+                        loopStart: state.loopStart,
+                        loopEnd: state.loopEnd,
+                        rangeLoop: state.rangeLoop,
+                        zoom: state.zoom,
+                        viewportOffset: state.viewportOffset
+                      };
+              }
             }
+            var frame = state.frame < state.loopStart || state.frame >= state.loopEnd ? state.loopStart : state.frame;
+            return {
+                    frame: frame,
+                    startPlayingFrame: frame,
+                    playState: /* Playing */0,
+                    fpsLimit: state.fpsLimit,
+                    svg: Wasm.controller.render_frame(BigInt(frame)),
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
+                  };
         case /* Pause */2 :
             return {
                     frame: state.frame,
@@ -177,6 +209,9 @@ function MakePlayer(Wasm) {
                     svg: state.svg,
                     volume: state.volume,
                     magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
                     zoom: state.zoom,
                     viewportOffset: state.viewportOffset
                   };
@@ -190,6 +225,9 @@ function MakePlayer(Wasm) {
                       svg: state.svg,
                       volume: state.volume,
                       magnet: undefined,
+                      loopStart: state.loopStart,
+                      loopEnd: state.loopEnd,
+                      rangeLoop: state.rangeLoop,
                       zoom: state.zoom,
                       viewportOffset: state.viewportOffset
                     };
@@ -202,10 +240,28 @@ function MakePlayer(Wasm) {
                       svg: state.svg,
                       volume: state.volume,
                       magnet: state.frame,
+                      loopStart: state.loopStart,
+                      loopEnd: state.loopEnd,
+                      rangeLoop: state.rangeLoop,
                       zoom: state.zoom,
                       viewportOffset: state.viewportOffset
                     };
             }
+        case /* ToggleRangeLoop */4 :
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: !state.rangeLoop,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
+                  };
         
       }
     } else {
@@ -222,10 +278,13 @@ function MakePlayer(Wasm) {
                     svg: state.svg,
                     volume: action._0,
                     magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
                     zoom: state.zoom,
                     viewportOffset: state.viewportOffset
                   };
-        case /* SetZoom */3 :
+        case /* SetLoopStart */3 :
             return {
                     frame: state.frame,
                     startPlayingFrame: state.startPlayingFrame,
@@ -234,10 +293,43 @@ function MakePlayer(Wasm) {
                     svg: state.svg,
                     volume: state.volume,
                     magnet: state.magnet,
+                    loopStart: Math.max(0, Math.min(action._0, state.loopEnd - 1 | 0)),
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
+                  };
+        case /* SetLoopEnd */4 :
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: Math.min(Wasm.videoMeta.durationInFrames, Math.max(action._0, state.loopStart + 1 | 0)),
+                    rangeLoop: state.rangeLoop,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
+                  };
+        case /* SetZoom */5 :
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
                     zoom: validateZoom(action._0),
                     viewportOffset: state.viewportOffset
                   };
-        case /* SetViewportOffset */4 :
+        case /* SetViewportOffset */6 :
             var offset = action._0;
             Dom_storage.setItem("ffviewportoffset", offset.toString(), localStorage);
             return {
@@ -248,10 +340,13 @@ function MakePlayer(Wasm) {
                     svg: state.svg,
                     volume: state.volume,
                     magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
                     zoom: state.zoom,
                     viewportOffset: offset
                   };
-        case /* BatchZoomUpdate */5 :
+        case /* BatchZoomUpdate */7 :
             var offset$1 = action._1;
             Dom_storage.setItem("ffviewportoffset", offset$1.toString(), localStorage);
             return {
@@ -262,66 +357,86 @@ function MakePlayer(Wasm) {
                     svg: state.svg,
                     volume: state.volume,
                     magnet: state.magnet,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    rangeLoop: state.rangeLoop,
                     zoom: validateZoom(action._0),
                     viewportOffset: offset$1
                   };
         
       }
     }
-    var frame = action._0;
-    if (frame >= Wasm.videoMeta.durationInFrames || frame < 0) {
-      var frame$1 = Utils.$$Option.unwrapOr(state.magnet, 0);
-      var svg = Wasm.controller.render_frame(BigInt(frame$1));
+    var frame$1 = action._0;
+    if (frame$1 >= Wasm.videoMeta.durationInFrames || frame$1 < 0) {
+      var frame$2 = Utils.$$Option.unwrapOr(state.magnet, 0);
+      var svg = Wasm.controller.render_frame(BigInt(frame$2));
       return {
-              frame: frame$1,
-              startPlayingFrame: frame$1,
+              frame: frame$2,
+              startPlayingFrame: frame$2,
               playState: Wasm.options.loop ? /* Playing */0 : /* Paused */1,
               fpsLimit: state.fpsLimit,
               svg: svg,
               volume: state.volume,
               magnet: state.magnet,
+              loopStart: state.loopStart,
+              loopEnd: state.loopEnd,
+              rangeLoop: state.rangeLoop,
               zoom: state.zoom,
               viewportOffset: state.viewportOffset
             };
     }
-    var frame$2 = action._0;
-    var svg$1 = Wasm.controller.render_frame(BigInt(frame$2));
+    var frame$3 = action._0;
+    var svg$1 = Wasm.controller.render_frame(BigInt(frame$3));
     var tmp;
     tmp = typeof action === "number" || action.TAG !== /* Seek */0 ? state.startPlayingFrame : action._0;
     return {
-            frame: frame$2,
+            frame: frame$3,
             startPlayingFrame: tmp,
             playState: state.playState,
             fpsLimit: state.fpsLimit,
             svg: svg$1,
             volume: state.volume,
             magnet: state.magnet,
+            loopStart: state.loopStart,
+            loopEnd: state.loopEnd,
+            rangeLoop: state.rangeLoop,
             zoom: state.zoom,
             viewportOffset: state.viewportOffset
           };
   };
   var onFrame = function (dispatch, secondsFromStart) {
     var nextFrame = Math.floor(secondsFromStart * Wasm.videoMeta.fps + Curry._1(get, undefined).startPlayingFrame);
-    if (nextFrame !== Curry._1(get, undefined).frame) {
-      Curry._1(dispatch, {
-            TAG: /* NewFrame */1,
-            _0: nextFrame
-          });
+    var state = Curry._1(get, undefined);
+    var restarted = state.rangeLoop && nextFrame >= state.loopEnd ? (Curry._1(dispatch, {
+              TAG: /* Seek */0,
+              _0: state.loopStart + Caml_int32.mod_(nextFrame - state.loopStart | 0, state.loopEnd - state.loopStart | 0) | 0
+            }), true) : (
+        state.rangeLoop && nextFrame < state.loopStart ? (Curry._1(dispatch, {
+                  TAG: /* Seek */0,
+                  _0: state.loopStart
+                }), true) : (nextFrame !== state.frame ? Curry._1(dispatch, {
+                    TAG: /* NewFrame */1,
+                    _0: nextFrame
+                  }) : undefined, false)
+      );
+    if (restarted) {
+      return false;
+    } else {
+      return Curry._1(get, undefined).playState === /* Playing */0;
     }
-    return Curry._1(get, undefined).playState === /* Playing */0;
   };
   var sideEffect = function (action, dispatch) {
     var startPlaying = function (currentFrame) {
+      var state = Curry._1(get, undefined);
+      var currentFrame$1 = state.rangeLoop && (currentFrame < state.loopStart || currentFrame >= state.loopEnd) ? state.loopStart : currentFrame;
       Belt_Option.map(Curry._1(get, undefined).volume, AnimationRuntime.AudioRuntime.setVolume);
       AnimationRuntime.AudioRuntime.startAnimation((function (param) {
               return onFrame(dispatch, param);
-            }), currentFrame, Wasm.videoMeta);
+            }), currentFrame$1, Wasm.videoMeta);
       
     };
     if (typeof action === "number") {
       switch (action) {
-        case /* AllowPlay */0 :
-            return ;
         case /* Play */1 :
             if (Curry._1(get, undefined).playState !== /* Playing */0) {
               return startPlaying(Curry._1(get, undefined).frame);
@@ -338,7 +453,8 @@ function MakePlayer(Wasm) {
             } else {
               return ;
             }
-        
+        default:
+          return ;
       }
     } else {
       switch (action.TAG | 0) {
@@ -358,12 +474,11 @@ function MakePlayer(Wasm) {
             var volume = action._0;
             AnimationRuntime.AudioRuntime.setVolume(volume);
             return Dom_storage.setItem("ffvolume", volume.toString(), localStorage);
-        case /* SetViewportOffset */4 :
-            return ;
-        case /* SetZoom */3 :
-        case /* BatchZoomUpdate */5 :
+        case /* SetZoom */5 :
+        case /* BatchZoomUpdate */7 :
             return Dom_storage.setItem("ffzoom", action._0.toString(), localStorage);
-        
+        default:
+          return ;
       }
     }
   };

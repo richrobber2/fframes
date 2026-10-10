@@ -11,6 +11,7 @@ module AudioRuntime = {
   let lastFrameTime = ref(None)
   let runtimeFps = ref(None)
   let smoothing = 0.9
+  let generation = ref(0)
   let ctx = AudioContext.create()
   let gain = ctx->AudioContext.createGain
 
@@ -19,6 +20,7 @@ module AudioRuntime = {
   }
 
   let stop = () => {
+    generation := generation.contents + 1
     rafId.contents->Belt.Option.map(Webapi.cancelAnimationFrame)->ignore
     playingSources.contents->Array.forEach(nameAndSource => {
       let (_, source) = nameAndSource
@@ -40,7 +42,13 @@ module AudioRuntime = {
       | _ => None
       }
 
-    if onFrame(~secondsFromStart) {
+    let generationBefore = generation.contents
+    let continue = onFrame(~secondsFromStart)
+    // A range wrap starts a new runtime from inside onFrame. The old callback
+    // must not cancel that new runtime or stop its freshly scheduled audio.
+    if generationBefore !== generation.contents {
+      ()
+    } else if continue {
       lastFrameTime := Some(currentTime)
       rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame)))
     } else {
@@ -80,6 +88,17 @@ module AudioRuntime = {
   let startAnimation = (~onFrame, ~currentFrame, ~videoMeta) => {
     stop() // in case if other animation playing
 
+    // Browsers suspend contexts created before a user gesture. Silent videos
+    // also use this clock, so resume it even when there are no audio sources.
+    ctx
+    ->AudioContext.resume
+    ->AudioContext.catchResume(error => {
+      Js.Console.error(error)
+    })
+    ->ignore
+    lastFrameTime := None
+    runtimeFps := None
+
     playingSources := ctx->connectAudioFiles(videoMeta)
 
     gain->AudioNode.connect(ctx.destination)->ignore
@@ -105,6 +124,6 @@ module AudioRuntime = {
       }
     })
 
-    Webapi.requestAnimationFrame(frame(~onFrame))
+    rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame)))
   }
 }

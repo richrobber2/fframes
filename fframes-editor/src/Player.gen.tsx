@@ -18,6 +18,9 @@ export type state = {
   readonly svg?: string; 
   readonly volume?: number; 
   readonly magnet?: number; 
+  readonly loopStart: number;
+  readonly loopEnd: number;
+  readonly rangeLoop: boolean;
   readonly zoom: number; 
   readonly viewportOffset: number
 };
@@ -28,9 +31,12 @@ export type action =
   | "Play"
   | "Pause"
   | "SetMagnet"
+  | "ToggleRangeLoop"
   | { tag: "Seek"; value: number }
   | { tag: "NewFrame"; value: number }
   | { tag: "SetVolume"; value: number }
+  | { tag: "SetLoopStart"; value: number }
+  | { tag: "SetLoopEnd"; value: number }
   | { tag: "SetZoom"; value: number }
   | { tag: "SetViewportOffset"; value: number }
   | { tag: "BatchZoomUpdate"; value: [number, number] };

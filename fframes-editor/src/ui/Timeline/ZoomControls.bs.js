@@ -19,7 +19,7 @@ function ZoomControls(Props) {
         var zoomFactor = ZoomUtils.calculateZoomFactorFromDelta(-1.0, player.zoom, 1.0, undefined);
         var newZoom = player.zoom * zoomFactor;
         return Curry._1(dispatch, {
-                    TAG: /* SetZoom */3,
+                    TAG: /* SetZoom */5,
                     _0: newZoom
                   });
       });
@@ -28,20 +28,20 @@ function ZoomControls(Props) {
         var newZoom = player.zoom * zoomFactor;
         if (newZoom <= 1.0) {
           return Curry._1(dispatch, {
-                      TAG: /* BatchZoomUpdate */5,
+                      TAG: /* BatchZoomUpdate */7,
                       _0: newZoom,
                       _1: 0.0
                     });
         } else {
           return Curry._1(dispatch, {
-                      TAG: /* SetZoom */3,
+                      TAG: /* SetZoom */5,
                       _0: newZoom
                     });
         }
       });
   var handleZoomReset = Hooks.useEvent(function (param) {
         return Curry._1(dispatch, {
-                    TAG: /* BatchZoomUpdate */5,
+                    TAG: /* BatchZoomUpdate */7,
                     _0: 1,
                     _1: 0.0
                   });

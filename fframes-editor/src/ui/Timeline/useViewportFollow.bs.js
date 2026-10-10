@@ -24,7 +24,7 @@ function useViewportFollow(sectionSize) {
                     framePosition > maxOffset ? maxOffset : framePosition
                   );
                 return Curry._1(dispatch, {
-                            TAG: /* SetViewportOffset */4,
+                            TAG: /* SetViewportOffset */6,
                             _0: constrainedOffset
                           });
               }), [

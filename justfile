@@ -106,3 +106,7 @@ md file="AGENTS.md":
 # Encode a rendered video into the landing page's AV1 + H.264 demo files
 landing-video input:
   scripts/landing-video.sh {{input}}
+
+# Build and launch the browser preview; pass --check for a playback smoke test.
+preview *ARGS:
+  node scripts/preview.mjs {{ARGS}}

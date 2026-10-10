@@ -28,6 +28,10 @@ var runtimeFps = {
   contents: undefined
 };
 
+var generation = {
+  contents: 0
+};
+
 var ctx = new AudioContext();
 
 var gain = ctx.createGain();
@@ -38,6 +42,7 @@ function setVolume(value) {
 }
 
 function stop(param) {
+  generation.contents = generation.contents + 1 | 0;
   Belt_Option.map(rafId.contents, (function (prim) {
           cancelAnimationFrame(prim);
           
@@ -74,7 +79,11 @@ function frame(onFrame, _timestamp) {
     tmp = thisFrameTime !== undefined && thisFrameTime > 0 ? 1 / thisFrameTime : undefined;
   }
   runtimeFps.contents = tmp;
-  if (Curry._1(onFrame, secondsFromStart)) {
+  var generationBefore = generation.contents;
+  var $$continue = Curry._1(onFrame, secondsFromStart);
+  if (generationBefore !== generation.contents) {
+    return ;
+  } else if ($$continue) {
     lastFrameTime.contents = currentTime;
     rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
               return frame(onFrame, param);
@@ -118,6 +127,12 @@ function connectAudioFiles(ctx, videoMeta) {
 
 function startAnimation(onFrame, currentFrame, videoMeta) {
   stop(undefined);
+  ctx.resume().catch(function (error) {
+        console.error(error);
+
+      });
+  lastFrameTime.contents = undefined;
+  runtimeFps.contents = undefined;
   playingSources.contents = connectAudioFiles(ctx, videoMeta);
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
@@ -134,9 +149,9 @@ function startAnimation(onFrame, currentFrame, videoMeta) {
           }
           
         }));
-  requestAnimationFrame(function (param) {
-        return frame(onFrame, param);
-      });
+  rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
+            return frame(onFrame, param);
+          }));
   
 }
 
@@ -147,6 +162,7 @@ var AudioRuntime = {
   lastFrameTime: lastFrameTime,
   runtimeFps: runtimeFps,
   smoothing: 0.9,
+  generation: generation,
   ctx: ctx,
   gain: gain,
   setVolume: setVolume,

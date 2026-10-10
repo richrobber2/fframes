@@ -80,7 +80,7 @@ function Timeline(Props) {
                   framePosition > maxOffset ? maxOffset : framePosition
                 );
               Curry._1(dispatch, {
-                    TAG: /* SetViewportOffset */4,
+                    TAG: /* SetViewportOffset */6,
                     _0: constrainedOffset
                   });
             }

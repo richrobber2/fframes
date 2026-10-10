@@ -319,6 +319,70 @@ just init-repo
 just watch-editor # in a separate terminal, to work on the editor
 ```
 
+## Preview launcher
+
+After installing the development dependencies, launch a browser preview with:
+
+```sh
+node scripts/preview.mjs
+node scripts/preview.mjs --example beta --port 5180
+```
+
+The launcher builds the editor and the selected example's WebAssembly bridge,
+resolves the editor's React dependencies, starts Vite, and checks that the page,
+entry module, and WASM binary are served. It stops only the server it started
+when you press Ctrl+C. An occupied port fails before building; choose another
+port rather than replacing an existing server. Use `--skip-build` to reuse
+outputs after a successful build. Rerun the launcher after Rust or editor source
+changes; this command does not start compiler watchers.
+
+Requires Node.js 20+, pnpm (the version in `package.json`), Rust with the
+`wasm32-unknown-unknown` target, `wasm-pack`, and a `wasm-bindgen` CLI version
+matching `Cargo.lock`. Builds use the existing lockfiles and do not install
+missing tools automatically. In the configured cloud environment, first run
+`source /workspace/.setup/env.sh`.
+
+To validate actual playback, pause, seeking, and replay in Chromium:
+
+```sh
+node scripts/preview.mjs --check
+```
+
+This optional check requires Playwright and its Chromium browser. If these are
+installed outside the repository, set `FFRAMES_PLAYWRIGHT_PATH` to the
+Playwright module directory and `FFRAMES_CHROMIUM_PATH` to the Chromium binary.
+`--check` exits after validation and shuts down its server. It uses the browser's
+default autoplay policy, without manually resuming the audio clock.
+
+### Selected range and draft export
+
+The preview controls now include start/end times in seconds, buttons to set
+boundaries at the current frame, and a loop toggle. The selected interval includes
+the start and excludes the end; it must contain at least one frame. Looping starts
+inside the interval and repeatedly wraps to its beginning. Disable the toggle to
+continue normal playback. Range selection is local to the current editor session.
+
+When started with `node scripts/preview.mjs`, the editor also offers **Export draft
+MP4** for ranges up to 30 seconds. It uses the selected example's native CLI with
+fast draft encoding, including the example's audio mix, then FFmpeg downsizes the
+result to half resolution. Rendering at native size first avoids a clipping bug
+in the native renderer's scaling of cached static SVG trees. This preserves the
+scene correctly but does not reduce the cost of rasterizing each frame.
+The first export may compile the native example. Keep the preview terminal open;
+render failures are reported there, and the editor shows a short error message.
+Only one export runs at a time, and temporary downloads are removed after sending.
+The hello-world integration check is `node scripts/check-range-preview.cjs BASE_URL`
+against a running launcher, with the same optional Playwright/Chromium variables
+as the playback check. It verifies range boundaries, wraparound, normal playback,
+request validation, and a real MP4 download.
+Draft export is available through this local launcher, rather than static hosting.
+The native build requires the FFmpeg/codec development dependencies documented
+above. The hello-world launcher passes `--slug World` to match its browser bridge.
+For other examples, pass native parameters with repeated `--render-arg=ARG`
+options (for example `--render-arg=--title --render-arg=World`). These are trusted
+launcher arguments; HTTP export requests can supply only the time range.
+Match the native parameters to any custom values in your WebAssembly bridge.
+
 ## License
 
 fframes is released under the [MIT License](./LICENSE.txt).

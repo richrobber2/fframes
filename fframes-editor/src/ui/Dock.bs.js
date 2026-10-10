@@ -12,6 +12,7 @@ import * as Spinner from "./components/Spinner.bs.js";
 import * as Tooltip from "./components/Tooltip.bs.js";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as IconButton from "./components/IconButton.bs.js";
+import * as RangeTools from "./RangeTools.bs.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as UseDebounce from "../bindings/UseDebounce.bs.js";
@@ -283,98 +284,123 @@ function Dock(Props) {
   var match$6 = player.playState;
   var volume = player.volume;
   var frame = player.magnet;
-  return React.createElement("div", {
-              "aria-label": "Playback controls",
-              className: "absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-surface-elevated p-1.5 text-default shadow-[var(--shadow-300),var(--shadow-hairline)]",
-              role: "toolbar"
-            }, React.createElement("div", {
-                  className: "flex items-baseline gap-1 px-3 text-sm tabular"
-                }, React.createElement("span", {
-                      className: "font-medium"
-                    }, Utils.Duration.formatFrame(player.frame, context.videoMeta.fps)), React.createElement("span", {
-                      className: "text-tertiary"
-                    }, "/"), React.createElement("span", {
-                      className: "text-secondary"
-                    }, Utils.Duration.formatFrame(context.videoMeta.durationInFrames, context.videoMeta.fps))), React.createElement(Tooltip.make, {
-                  children: React.createElement("div", {
-                        className: "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs text-secondary tabular outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-                        tabIndex: 0
-                      }, React.createElement("span", {
-                            "aria-hidden": true,
-                            className: Cx.cx([
-                                  "size-1.5 rounded-full transition-colors duration-[400ms]",
-                                  tmp
-                                ])
-                          }), React.createElement("span", {
-                            className: "inline-block w-[2ch] text-right"
-                          }, fps), React.createElement("span", undefined, "fps"), match$4 !== undefined ? React.createElement(Icon.Lock, {
-                              className: "size-3.5"
-                            }) : null),
-                  content: originalFps !== undefined ? "Preview locked to " + String(context.videoMeta.fps) + " fps, the video renders at " + String(originalFps) + " fps" : "Preview frame rate"
-                }), React.createElement(make, {}), React.createElement(IconButton.make, {
-                  label: "Back " + rewindStep + "s",
-                  onClick: handleSeekLeft,
-                  children: React.createElement(Icon.ArrowRotateCcw, {}),
-                  shortcut: "←"
-                }), React.createElement(IconButton.make, {
-                  label: match$5 !== 0 ? (
-                      match$5 >= 3 ? "Loading media" : "Play"
-                    ) : "Pause",
-                  onClick: handlePlayOrPause,
-                  children: match$6 !== 0 ? (
-                      match$6 >= 3 ? React.createElement(Spinner.make, {
-                              className: "size-5"
-                            }) : React.createElement(Icon.PlayTriangle, {})
-                    ) : React.createElement(Icon.PauseSm, {}),
-                  shortcut: "Space",
-                  variant: /* Brand */2,
-                  size: /* Lg */1
-                }), React.createElement(IconButton.make, {
-                  label: "Forward " + rewindStep + "s",
-                  onClick: handleSeekRight,
-                  children: React.createElement(Icon.ArrowRotateCw, {}),
-                  shortcut: "→"
-                }), React.createElement(make, {}), React.createElement("div", {
-                  className: "flex items-center gap-1 pr-3"
-                }, volume !== undefined ? React.createElement(IconButton.make, {
-                        label: volume === 0 ? "Unmute" : "Mute",
-                        onClick: toggleMute,
-                        children: volume === 0 ? React.createElement(Icon.SoundOffSpeaker, {}) : React.createElement(Icon.SoundOnReadOutLoudSpeaker, {}),
-                        shortcut: "Ctrl ↓",
-                        pressed: volume === 0
-                      }) : React.createElement(Tooltip.make, {
-                        children: React.createElement("span", {
-                              className: "inline-flex size-9 items-center justify-center text-disabled outline-none [&>svg]:size-5",
-                              tabIndex: 0
-                            }, React.createElement(Icon.SoundOffSpeaker, {})),
-                        content: "This video has no audio"
-                      }), React.createElement(Slider.make, {
-                      onValueChange: handleSetVolume,
-                      disabled: Belt_Option.isNone(player.volume),
-                      value: Utils.$$Option.unwrapOr(player.volume, 0),
-                      min: Player.min_volume,
-                      max: Player.max_volume,
-                      step: 1,
-                      label: "Volume"
-                    })), React.createElement(make, {}), React.createElement(IconButton.make, {
-                  label: frame !== undefined ? (
-                      frame === player.frame ? "Remove start pin" : "Move start pin here"
-                    ) : "Pin start here",
-                  onClick: setMagnet,
-                  children: React.createElement(Icon.Pin, {}),
-                  shortcut: "M",
-                  pressed: Belt_Option.isSome(player.magnet)
-                }), React.createElement(ZoomControls.make, {}), React.createElement(IconButton.make, {
-                  label: isFullScreen ? "Exit full screen" : "Full screen",
-                  onClick: fullScreenToggler.toggle,
-                  children: isFullScreen ? React.createElement(Icon.CollapseLg, {}) : React.createElement(Icon.ExpandLg, {}),
-                  shortcut: "F"
-                }), React.createElement(make, {}), React.createElement(IconButton.make, {
-                  label: "Hide controls",
-                  onClick: toggleDock,
-                  children: React.createElement(Icon.ChevronDown, {}),
-                  shortcut: "T"
-                }));
+  return React.createElement("div", undefined, React.createElement(RangeTools.make, {
+                  fps: context.videoMeta.fps,
+                  start: player.loopStart,
+                  end: player.loopEnd,
+                  duration: context.videoMeta.durationInFrames,
+                  current: player.frame,
+                  enabled: player.rangeLoop,
+                  onStart: (function (frame) {
+                      return Curry._1(dispatch, {
+                                  TAG: /* SetLoopStart */3,
+                                  _0: frame
+                                });
+                    }),
+                  onEnd: (function (frame) {
+                      return Curry._1(dispatch, {
+                                  TAG: /* SetLoopEnd */4,
+                                  _0: frame
+                                });
+                    }),
+                  onToggle: (function (param) {
+                      return Curry._1(dispatch, /* ToggleRangeLoop */4);
+                    }),
+                  onPause: (function (param) {
+                      return Curry._1(dispatch, /* Pause */2);
+                    })
+                }), React.createElement("div", {
+                  "aria-label": "Playback controls",
+                  className: "absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-surface-elevated p-1.5 text-default shadow-[var(--shadow-300),var(--shadow-hairline)]",
+                  role: "toolbar"
+                }, React.createElement("div", {
+                      className: "flex items-baseline gap-1 px-3 text-sm tabular"
+                    }, React.createElement("span", {
+                          className: "font-medium"
+                        }, Utils.Duration.formatFrame(player.frame, context.videoMeta.fps)), React.createElement("span", {
+                          className: "text-tertiary"
+                        }, "/"), React.createElement("span", {
+                          className: "text-secondary"
+                        }, Utils.Duration.formatFrame(context.videoMeta.durationInFrames, context.videoMeta.fps))), React.createElement(Tooltip.make, {
+                      children: React.createElement("div", {
+                            className: "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs text-secondary tabular outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+                            tabIndex: 0
+                          }, React.createElement("span", {
+                                "aria-hidden": true,
+                                className: Cx.cx([
+                                      "size-1.5 rounded-full transition-colors duration-[400ms]",
+                                      tmp
+                                    ])
+                              }), React.createElement("span", {
+                                className: "inline-block w-[2ch] text-right"
+                              }, fps), React.createElement("span", undefined, "fps"), match$4 !== undefined ? React.createElement(Icon.Lock, {
+                                  className: "size-3.5"
+                                }) : null),
+                      content: originalFps !== undefined ? "Preview locked to " + String(context.videoMeta.fps) + " fps, the video renders at " + String(originalFps) + " fps" : "Preview frame rate"
+                    }), React.createElement(make, {}), React.createElement(IconButton.make, {
+                      label: "Back " + rewindStep + "s",
+                      onClick: handleSeekLeft,
+                      children: React.createElement(Icon.ArrowRotateCcw, {}),
+                      shortcut: "←"
+                    }), React.createElement(IconButton.make, {
+                      label: match$5 !== 0 ? (
+                          match$5 >= 3 ? "Loading media" : "Play"
+                        ) : "Pause",
+                      onClick: handlePlayOrPause,
+                      children: match$6 !== 0 ? (
+                          match$6 >= 3 ? React.createElement(Spinner.make, {
+                                  className: "size-5"
+                                }) : React.createElement(Icon.PlayTriangle, {})
+                        ) : React.createElement(Icon.PauseSm, {}),
+                      shortcut: "Space",
+                      variant: /* Brand */2,
+                      size: /* Lg */1
+                    }), React.createElement(IconButton.make, {
+                      label: "Forward " + rewindStep + "s",
+                      onClick: handleSeekRight,
+                      children: React.createElement(Icon.ArrowRotateCw, {}),
+                      shortcut: "→"
+                    }), React.createElement(make, {}), React.createElement("div", {
+                      className: "flex items-center gap-1 pr-3"
+                    }, volume !== undefined ? React.createElement(IconButton.make, {
+                            label: volume === 0 ? "Unmute" : "Mute",
+                            onClick: toggleMute,
+                            children: volume === 0 ? React.createElement(Icon.SoundOffSpeaker, {}) : React.createElement(Icon.SoundOnReadOutLoudSpeaker, {}),
+                            shortcut: "Ctrl ↓",
+                            pressed: volume === 0
+                          }) : React.createElement(Tooltip.make, {
+                            children: React.createElement("span", {
+                                  className: "inline-flex size-9 items-center justify-center text-disabled outline-none [&>svg]:size-5",
+                                  tabIndex: 0
+                                }, React.createElement(Icon.SoundOffSpeaker, {})),
+                            content: "This video has no audio"
+                          }), React.createElement(Slider.make, {
+                          onValueChange: handleSetVolume,
+                          disabled: Belt_Option.isNone(player.volume),
+                          value: Utils.$$Option.unwrapOr(player.volume, 0),
+                          min: Player.min_volume,
+                          max: Player.max_volume,
+                          step: 1,
+                          label: "Volume"
+                        })), React.createElement(make, {}), React.createElement(IconButton.make, {
+                      label: frame !== undefined ? (
+                          frame === player.frame ? "Remove start pin" : "Move start pin here"
+                        ) : "Pin start here",
+                      onClick: setMagnet,
+                      children: React.createElement(Icon.Pin, {}),
+                      shortcut: "M",
+                      pressed: Belt_Option.isSome(player.magnet)
+                    }), React.createElement(ZoomControls.make, {}), React.createElement(IconButton.make, {
+                      label: isFullScreen ? "Exit full screen" : "Full screen",
+                      onClick: fullScreenToggler.toggle,
+                      children: isFullScreen ? React.createElement(Icon.CollapseLg, {}) : React.createElement(Icon.ExpandLg, {}),
+                      shortcut: "F"
+                    }), React.createElement(make, {}), React.createElement(IconButton.make, {
+                      label: "Hide controls",
+                      onClick: toggleDock,
+                      children: React.createElement(Icon.ChevronDown, {}),
+                      shortcut: "T"
+                    })));
 }
 
 var make$1 = Dock;

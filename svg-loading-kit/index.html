@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SVG Loading Kit</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f7f6fb;
+        color: #29243e;
+        font:
+          16px system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1080px;
+        margin: auto;
+        padding: 64px 24px;
+      }
+      header {
+        max-width: 660px;
+      }
+      small {
+        color: #6957e8;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+      h1 {
+        font-size: clamp(36px, 6vw, 64px);
+        letter-spacing: -0.055em;
+        margin: 16px 0;
+      }
+      p {
+        color: #716a85;
+        line-height: 1.65;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 24px;
+        background: white;
+        border: 1px solid #e9e7f2;
+        border-radius: 20px;
+        padding: 24px;
+        margin: 32px 0;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      input[type="range"] {
+        accent-color: #6957e8;
+        width: 130px;
+      }
+      input[type="color"] {
+        width: 36px;
+        height: 36px;
+        border: 0;
+        background: none;
+      }
+      select {
+        padding: 8px;
+        border: 1px solid #e9e7f2;
+        border-radius: 8px;
+      }
+      output {
+        min-width: 40px;
+        font-variant-numeric: tabular-nums;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+      .card {
+        background: white;
+        border: 1px solid #e9e7f2;
+        border-radius: 20px;
+        padding: 24px;
+      }
+      .preview {
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .preview > div {
+        width: 110px;
+      }
+      .card:first-child .preview > div {
+        width: 100%;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid #e9e7f2;
+        border-radius: 10px;
+        padding: 10px 16px;
+        background: #f7f6fb;
+        color: #4f437d;
+        font: inherit;
+        font-size: 13px;
+      }
+      button:hover {
+        background: #efedf9;
+      }
+      :focus-visible {
+        outline: 3px solid #6957e8;
+        outline-offset: 3px;
+      }
+      .foot {
+        margin-top: 24px;
+        font-size: 13px;
+      }
+      @media (max-width: 720px) {
+        main {
+          padding: 32px 20px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .preview {
+          height: 140px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <small>SVG LOADING KIT</small>
+        <h1>Small details.<br />Any scale.</h1>
+        <p>
+          Three reusable loaders for your next website or app. Tune the look,
+          preview the motion, and download a self-contained SVG.
+        </p>
+      </header>
+      <section class="controls" aria-label="Loader settings">
+        <label
+          >Progress
+          <input
+            id="progress"
+            type="range"
+            min="0"
+            max="100"
+            value="65"
+          /><output id="percent">65%</output></label
+        >
+        <label
+          ><input id="indeterminate" type="checkbox" /> Unknown progress</label
+        >
+        <label>Color <input id="color" type="color" value="#6957e8" /></label>
+        <label
+          >Thickness
+          <input id="thickness" type="range" min="2" max="20" value="8"
+        /></label>
+        <label
+          >Speed
+          <select id="speed">
+            <option value="2.4">Slow</option>
+            <option value="1.4" selected>Normal</option>
+            <option value="0.7">Fast</option>
+          </select></label
+        >
+        <label><input id="reduce" type="checkbox" /> Reduce motion</label>
+      </section>
+      <section class="grid" aria-label="Loader previews">
+        <article class="card" data-kind="bar">
+          <h2>Loading bar</h2>
+          <p>For uploads and downloads.</p>
+          <div class="preview"><div></div></div>
+          <button>Download bar SVG</button>
+        </article>
+        <article class="card" data-kind="ring">
+          <h2>Progress ring</h2>
+          <p>A little progress, in less space.</p>
+          <div class="preview"><div></div></div>
+          <button>Download ring SVG</button>
+        </article>
+        <article class="card" data-kind="spinner">
+          <h2>Spinner</h2>
+          <p>When the wait is unknown.</p>
+          <div class="preview"><div></div></div>
+          <button>Download spinner SVG</button>
+        </article>
+      </section>
+      <p class="foot">
+        Pure vectors · No runtime dependencies · Accessible progress labels ·
+        Respects reduced motion
+      </p>
+      <p id="status" role="status"></p>
+    </main>
+    <script type="module" src="./demo.mjs"></script>
+  </body>
+</html>

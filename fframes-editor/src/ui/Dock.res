@@ -207,130 +207,144 @@ let make = (
         </div>
       </div>
     } else {
-      <div
-        role="toolbar"
-        ariaLabel="Playback controls"
-        className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-surface-elevated p-1.5 text-default shadow-[var(--shadow-300),var(--shadow-hairline)]">
-        <div className="flex items-baseline gap-1 px-3 text-sm tabular">
-          <span className="font-medium">
-            {player.frame->Utils.Duration.formatFrame(context.videoMeta.fps)->React.string}
-          </span>
-          <span className="text-tertiary"> {React.string("/")} </span>
-          <span className="text-secondary">
-            {context.videoMeta.durationInFrames
-            ->Utils.Duration.formatFrame(context.videoMeta.fps)
-            ->React.string}
-          </span>
-        </div>
-        <Tooltip
-          content={switch context.videoMeta.originalFps {
-          | Some(originalFps) =>
-            React.string(
-              `Preview locked to ${context.videoMeta.fps->Int.toString} fps, the video renders at ${originalFps->Int.toString} fps`,
-            )
-          | None => React.string("Preview frame rate")
-          }}>
-          <div
-            tabIndex=0
-            className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs text-secondary tabular outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]">
-            <span
-              ariaHidden=true
-              className={cx([
-                "size-1.5 rounded-full transition-colors duration-[400ms]",
-                switch getFpsMarker(debouncedFps, context.videoMeta.fps) {
-                | Good => "bg-green-400"
-                | Slow => "bg-orange-400"
-                | Bad => "bg-red-400"
-                | Unknown => "bg-gray-400"
-                },
-              ])}
-            />
-            <span className="inline-block w-[2ch] text-right"> {React.string(fps)} </span>
-            <span> {React.string("fps")} </span>
-            {switch context.videoMeta.originalFps {
-            | Some(_) => <LockIcon className="size-3.5" />
-            | None => React.null
-            }}
+      <div>
+        <RangeTools
+          fps=context.videoMeta.fps
+          start=player.loopStart
+          end=player.loopEnd
+          duration=context.videoMeta.durationInFrames
+          current=player.frame
+          enabled=player.rangeLoop
+          onStart={frame => dispatch(SetLoopStart(frame))}
+          onEnd={frame => dispatch(SetLoopEnd(frame))}
+          onToggle={() => dispatch(ToggleRangeLoop)}
+          onPause={() => dispatch(Pause)}
+        />
+        <div
+          role="toolbar"
+          ariaLabel="Playback controls"
+          className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-surface-elevated p-1.5 text-default shadow-[var(--shadow-300),var(--shadow-hairline)]">
+          <div className="flex items-baseline gap-1 px-3 text-sm tabular">
+            <span className="font-medium">
+              {player.frame->Utils.Duration.formatFrame(context.videoMeta.fps)->React.string}
+            </span>
+            <span className="text-tertiary"> {React.string("/")} </span>
+            <span className="text-secondary">
+              {context.videoMeta.durationInFrames
+              ->Utils.Duration.formatFrame(context.videoMeta.fps)
+              ->React.string}
+            </span>
           </div>
-        </Tooltip>
-        <DockDivider />
-        <IconButton onClick=handleSeekLeft label={`Back ${rewindStep}s`} shortcut={`←`}>
-          <RewindIcon />
-        </IconButton>
-        <IconButton
-          onClick=handlePlayOrPause
-          variant=IconButton.Brand
-          size=IconButton.Lg
-          label={switch player.playState {
-          | Playing => "Pause"
-          | CantPlay => "Loading media"
-          | _ => "Play"
-          }}
-          shortcut="Space">
-          {switch player.playState {
-          | CantPlay => <Spinner className="size-5" />
-          | Playing => <PauseIcon />
-          | Paused
-          | WaitingForAction =>
-            <PlayIcon />
-          }}
-        </IconButton>
-        <IconButton onClick=handleSeekRight label={`Forward ${rewindStep}s`} shortcut={`→`}>
-          <ForwardIcon />
-        </IconButton>
-        <DockDivider />
-        <div className="flex items-center gap-1 pr-3">
-          {switch player.volume {
-          | Some(volume) =>
-            <IconButton
-              onClick=toggleMute
-              label={volume === 0 ? "Unmute" : "Mute"}
-              pressed={volume === 0}
-              shortcut={`Ctrl ↓`}>
-              {volume === 0 ? <MuteIcon /> : <VolumeIcon />}
-            </IconButton>
-          | None =>
-            <Tooltip content={React.string("This video has no audio")}>
+          <Tooltip
+            content={switch context.videoMeta.originalFps {
+            | Some(originalFps) =>
+              React.string(
+                `Preview locked to ${context.videoMeta.fps->Int.toString} fps, the video renders at ${originalFps->Int.toString} fps`,
+              )
+            | None => React.string("Preview frame rate")
+            }}>
+            <div
+              tabIndex=0
+              className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs text-secondary tabular outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]">
               <span
-                tabIndex=0
-                className="inline-flex size-9 items-center justify-center text-disabled outline-none [&>svg]:size-5">
-                <MuteIcon />
-              </span>
-            </Tooltip>
-          }}
-          <Slider
-            label="Volume"
-            disabled={player.volume->Option.isNone}
-            min=Player.min_volume
-            max=Player.max_volume
-            step=1
-            value={player.volume->Utils.Option.unwrapOr(0)}
-            onValueChange={handleSetVolume}
-          />
+                ariaHidden=true
+                className={cx([
+                  "size-1.5 rounded-full transition-colors duration-[400ms]",
+                  switch getFpsMarker(debouncedFps, context.videoMeta.fps) {
+                  | Good => "bg-green-400"
+                  | Slow => "bg-orange-400"
+                  | Bad => "bg-red-400"
+                  | Unknown => "bg-gray-400"
+                  },
+                ])}
+              />
+              <span className="inline-block w-[2ch] text-right"> {React.string(fps)} </span>
+              <span> {React.string("fps")} </span>
+              {switch context.videoMeta.originalFps {
+              | Some(_) => <LockIcon className="size-3.5" />
+              | None => React.null
+              }}
+            </div>
+          </Tooltip>
+          <DockDivider />
+          <IconButton onClick=handleSeekLeft label={`Back ${rewindStep}s`} shortcut={`←`}>
+            <RewindIcon />
+          </IconButton>
+          <IconButton
+            onClick=handlePlayOrPause
+            variant=IconButton.Brand
+            size=IconButton.Lg
+            label={switch player.playState {
+            | Playing => "Pause"
+            | CantPlay => "Loading media"
+            | _ => "Play"
+            }}
+            shortcut="Space">
+            {switch player.playState {
+            | CantPlay => <Spinner className="size-5" />
+            | Playing => <PauseIcon />
+            | Paused
+            | WaitingForAction =>
+              <PlayIcon />
+            }}
+          </IconButton>
+          <IconButton onClick=handleSeekRight label={`Forward ${rewindStep}s`} shortcut={`→`}>
+            <ForwardIcon />
+          </IconButton>
+          <DockDivider />
+          <div className="flex items-center gap-1 pr-3">
+            {switch player.volume {
+            | Some(volume) =>
+              <IconButton
+                onClick=toggleMute
+                label={volume === 0 ? "Unmute" : "Mute"}
+                pressed={volume === 0}
+                shortcut={`Ctrl ↓`}>
+                {volume === 0 ? <MuteIcon /> : <VolumeIcon />}
+              </IconButton>
+            | None =>
+              <Tooltip content={React.string("This video has no audio")}>
+                <span
+                  tabIndex=0
+                  className="inline-flex size-9 items-center justify-center text-disabled outline-none [&>svg]:size-5">
+                  <MuteIcon />
+                </span>
+              </Tooltip>
+            }}
+            <Slider
+              label="Volume"
+              disabled={player.volume->Option.isNone}
+              min=Player.min_volume
+              max=Player.max_volume
+              step=1
+              value={player.volume->Utils.Option.unwrapOr(0)}
+              onValueChange={handleSetVolume}
+            />
+          </div>
+          <DockDivider />
+          <IconButton
+            onClick=setMagnet
+            label={switch player.magnet {
+            | Some(frame) if frame === player.frame => "Remove start pin"
+            | Some(_) => "Move start pin here"
+            | None => "Pin start here"
+            }}
+            pressed={player.magnet->Option.isSome}
+            shortcut="M">
+            <PinIcon />
+          </IconButton>
+          <ZoomControls />
+          <IconButton
+            onClick=fullScreenToggler.toggle
+            label={isFullScreen ? "Exit full screen" : "Full screen"}
+            shortcut="F">
+            {isFullScreen ? <CollapseIcon /> : <ExpandIcon />}
+          </IconButton>
+          <DockDivider />
+          <IconButton onClick=toggleDock label="Hide controls" shortcut="T">
+            <ChevronDownIcon />
+          </IconButton>
         </div>
-        <DockDivider />
-        <IconButton
-          onClick=setMagnet
-          label={switch player.magnet {
-          | Some(frame) if frame === player.frame => "Remove start pin"
-          | Some(_) => "Move start pin here"
-          | None => "Pin start here"
-          }}
-          pressed={player.magnet->Option.isSome}
-          shortcut="M">
-          <PinIcon />
-        </IconButton>
-        <ZoomControls />
-        <IconButton
-          onClick=fullScreenToggler.toggle
-          label={isFullScreen ? "Exit full screen" : "Full screen"}
-          shortcut="F">
-          {isFullScreen ? <CollapseIcon /> : <ExpandIcon />}
-        </IconButton>
-        <DockDivider />
-        <IconButton onClick=toggleDock label="Hide controls" shortcut="T">
-          <ChevronDownIcon />
-        </IconButton>
       </div>
     }
   }

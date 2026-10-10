@@ -73,6 +73,8 @@ module AudioContext = {
   @new external create: unit => t = "AudioContext"
   @get external getDestination: t => AudioNode.t = "destination"
   @get external getCurrentTime: t => float = "currentTime"
+  @send external resume: t => Js.Promise.t<unit> = "resume"
+  @send external catchResume: (Js.Promise.t<unit>, 'error => unit) => Js.Promise.t<unit> = "catch"
   @send external createGain: t => AudioNode.t = "createGain"
   @send external createOscillator: t => AudioNode.t = "create"
   @send

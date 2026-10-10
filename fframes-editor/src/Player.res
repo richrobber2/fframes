@@ -12,6 +12,9 @@ type state = {
   svg: option<string>,
   volume: option<int>,
   magnet: option<int>,
+  loopStart: int,
+  loopEnd: int,
+  rangeLoop: bool,
   zoom: float,
   viewportOffset: float,
 }
@@ -25,6 +28,9 @@ type action =
   | Pause
   | SetVolume(int)
   | SetMagnet
+  | SetLoopStart(int)
+  | SetLoopEnd(int)
+  | ToggleRangeLoop
   | SetZoom(float)
   | SetViewportOffset(float)
   | BatchZoomUpdate(float, float) // zoom, viewportOffset
@@ -126,6 +132,9 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         volume: volume,
         svg: Wasm.controller->WasmController.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
         magnet: savedMagnet,
+        loopStart: 0,
+        loopEnd: Wasm.videoMeta.durationInFrames,
+        rangeLoop: false,
         zoom: savedZoom,
         viewportOffset: savedViewportOffset,
       }
@@ -137,6 +146,9 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         volume: volume,
         fpsLimit: Some(Wasm.videoMeta.fps),
         magnet: savedMagnet,
+        loopStart: 0,
+        loopEnd: Wasm.videoMeta.durationInFrames,
+        rangeLoop: false,
         zoom: savedZoom,
         viewportOffset: savedViewportOffset,
       }
@@ -181,6 +193,32 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
           | Seek(frame) => frame
           | _ => state.startPlayingFrame
           },
+        }
+      }
+    | SetLoopStart(frame) => {
+        ...state,
+        loopStart: Utils.Math.maxI(0, Utils.Math.minI(frame, state.loopEnd - 1)),
+      }
+    | SetLoopEnd(frame) => {
+        ...state,
+        loopEnd: Utils.Math.minI(
+          Wasm.videoMeta.durationInFrames,
+          Utils.Math.maxI(frame, state.loopStart + 1),
+        ),
+      }
+    | ToggleRangeLoop => {...state, rangeLoop: !state.rangeLoop}
+    | Play if state.rangeLoop => {
+        let frame = if state.frame < state.loopStart || state.frame >= state.loopEnd {
+          state.loopStart
+        } else {
+          state.frame
+        }
+        {
+          ...state,
+          frame: frame,
+          startPlayingFrame: frame,
+          svg: Some(Wasm.controller->WasmController.render_frame(frame->Js.BigInt.fromInt)),
+          playState: Playing,
         }
       }
     | AllowPlay => {...state, playState: WaitingForAction}
@@ -236,15 +274,35 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
       (secondsFromStart *. Wasm.videoMeta.fps->Float.fromInt +.
         get().startPlayingFrame->Float.fromInt)->Utils.Math.floor
 
-    if nextFrame !== get().frame {
-      dispatch(NewFrame(nextFrame))
+    let state = get()
+    let restarted = if state.rangeLoop && nextFrame >= state.loopEnd {
+      dispatch(
+        Seek(state.loopStart + mod(nextFrame - state.loopStart, state.loopEnd - state.loopStart)),
+      )
+      true
+    } else if state.rangeLoop && nextFrame < state.loopStart {
+      dispatch(Seek(state.loopStart))
+      true
+    } else {
+      if nextFrame !== state.frame {
+        dispatch(NewFrame(nextFrame))
+      }
+      false
     }
 
-    get().playState === Playing
+    !restarted && get().playState === Playing
   }
 
   let sideEffect = (action, dispatch) => {
     let startPlaying = currentFrame => {
+      let state = get()
+      let currentFrame = if (
+        state.rangeLoop && (currentFrame < state.loopStart || currentFrame >= state.loopEnd)
+      ) {
+        state.loopStart
+      } else {
+        currentFrame
+      }
       get().volume->Option.map(AnimationRuntime.AudioRuntime.setVolume)->ignore
       AnimationRuntime.AudioRuntime.startAnimation(
         ~onFrame=onFrame(dispatch),
