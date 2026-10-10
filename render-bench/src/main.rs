@@ -384,6 +384,7 @@ impl Bench<'_> {
             font_source: Some(&runtime.font_source),
             abort_signal: None,
             current_video_size: VideoSize::new_scaled(V::WIDTH, V::HEIGHT, 1.0),
+            input: None,
         };
         report.total_frames = ctx.duration_in_frames;
 

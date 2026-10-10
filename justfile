@@ -111,6 +111,7 @@ landing-video input:
 landing-demo:
   cd examples/hello-world/editor/editor-bridge && cargo build --lib --release --target wasm32-unknown-unknown
   wasm-bindgen --target web --no-typescript --out-dir landing/demo --out-name hello-world target/wasm32-unknown-unknown/release/hello_world_bridge_example.wasm
+  cp fframes-live/fframes-live.js landing/demo/
 
 # Build and launch the browser preview; pass --check for a playback smoke test.
 preview *ARGS:

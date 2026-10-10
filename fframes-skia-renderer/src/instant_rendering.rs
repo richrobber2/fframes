@@ -133,6 +133,7 @@ impl<TBackend: SkiaBackend> SkiaFFramesRenderer<'_, TBackend> {
             scenes: fframes_ctx.runtime.timeline.scenes.as_ref(),
             media_source: media,
             font_source: Some(&fframes_ctx.runtime.font_source),
+            input: None,
         };
 
         let fframe = fframes::Frame::__internal_make_for_renderer(

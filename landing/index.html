@@ -404,6 +404,9 @@
     text-align: center;
   }
   .live[data-state="ready"] .live-status { display: none; }
+  .live-frame [data-action] { cursor: pointer; }
+  .live-frame [data-action]:focus { outline: none; }
+  .live-frame [data-action]:focus-visible { outline: 4px solid var(--ring); outline-offset: 4px; }
   .live-controls {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -755,11 +758,11 @@
     <section class="live" data-state="idle" data-playing="false" aria-labelledby="live-title">
       <div class="live-head">
         <h2 id="live-title">Or run it <em>live</em></h2>
-        <p>This is <code>examples/hello-world</code>: the same Rust that renders a video file, compiled to WebAssembly and drawing every frame as SVG in your browser. Type a name to change the video.</p>
+        <p>This is <code>examples/hello-world</code> running as an interactive animation: the same Rust that can render a video file, compiled to WebAssembly and drawing into the page. Click the square, move your pointer over it, type a name.</p>
       </div>
       <div class="live-panel">
         <div class="live-stage">
-          <div class="live-frame" role="img" aria-label="Live render of the hello-world video"></div>
+          <div class="live-frame" role="group" aria-label="Live hello-world animation"></div>
           <p class="live-status" role="status">The live demo loads when it scrolls into view.</p>
         </div>
         <div class="live-controls">
@@ -770,7 +773,7 @@
           <input class="live-scrub" type="range" min="0" max="0" step="1" value="0" aria-label="Frame">
           <span class="live-time" aria-hidden="true">0:00 / 0:00</span>
           <div class="live-scenes" aria-label="Scenes"></div>
-          <label class="live-name">Name <input type="text" value="World" maxlength="24" autocomplete="off" spellcheck="false"></label>
+          <label class="live-name">Name <input type="text" value="World" maxlength="24" autocomplete="off" spellcheck="false" data-fframes-value="name"></label>
         </div>
       </div>
     </section>
@@ -863,7 +866,8 @@
   </script>
   <script type="importmap">{ "imports": { "@fframes/editor": "./demo/editor-shim.js" } }</script>
   <script type="module">
-    // Live demo: the hello-world example compiled to WebAssembly, rendering each frame as SVG.
+    // Live demo: the hello-world example compiled to WebAssembly and run by the fframes live
+    // runtime. The SVG stays in the page and only changes are applied, so its shapes are clickable.
     const live = document.querySelector(".live");
     const frameEl = live.querySelector(".live-frame");
     const status = live.querySelector(".live-status");
@@ -871,57 +875,31 @@
     const scrub = live.querySelector(".live-scrub");
     const time = live.querySelector(".live-time");
     const scenesEl = live.querySelector(".live-scenes");
-    const nameInput = live.querySelector(".live-name input");
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    let bridge, fps = 30, duration = 1, frame = 0, rendered = -1;
-    let playing = false, visible = false, clockStart = 0, raf = 0;
+    let player;
     let scenes = [];
-    let pending = Promise.resolve();
-
     const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-    function draw(force) {
-      if (!bridge || (frame === rendered && !force)) return;
-      frameEl.innerHTML = bridge.render_frame(BigInt(frame));
-      rendered = frame;
+    function showFrame(frame) {
+      const total = player ? player.durationInFrames : 1;
+      const fps = player ? player.fps : 30;
       scrub.value = frame;
-      scrub.setAttribute("aria-valuetext", `${clock(frame / fps)} of ${clock(duration / fps)}`);
-      time.textContent = `${clock(frame / fps)} / ${clock(duration / fps)}`;
+      scrub.setAttribute("aria-valuetext", `${clock(frame / fps)} of ${clock(total / fps)}`);
+      time.textContent = `${clock(frame / fps)} / ${clock(total / fps)}`;
       for (const button of scenesEl.children) {
         const scene = scenes[button.dataset.index];
         button.setAttribute("aria-current", String(frame >= scene.start && frame < scene.end));
       }
     }
 
-    function tick(now) {
-      raf = 0;
-      if (!playing || !visible || document.hidden) return;
-      frame = Math.floor(((now - clockStart) / 1000) * fps) % duration;
-      draw();
-      raf = requestAnimationFrame(tick);
+    function syncPlaying() {
+      const playing = Boolean(player?.playing);
+      live.dataset.playing = String(playing);
+      playButton.setAttribute("aria-label", playing ? "Pause" : "Play");
     }
 
-    function resume() {
-      if (!playing || !visible || document.hidden || raf) return;
-      clockStart = performance.now() - (frame / fps) * 1000;
-      raf = requestAnimationFrame(tick);
-    }
-
-    function setPlaying(value) {
-      playing = value;
-      live.dataset.playing = String(value);
-      playButton.setAttribute("aria-label", value ? "Pause" : "Play");
-      if (value) resume();
-    }
-
-    function seek(to) {
-      frame = Math.max(0, Math.min(duration - 1, to));
-      clockStart = performance.now() - (frame / fps) * 1000;
-      draw();
-    }
-
-    async function loadFonts() {
+    async function loadFonts(bridge) {
       bridge.populate_static_fonts_db_with_static_fonts();
       const faces = [];
       for (let i = 0; ; i++) {
@@ -944,8 +922,8 @@
       return list
         .map(scene => ({
           name: scene.name,
-          start: scene.start_frame ?? scene.startFrame ?? scene.start ?? scene.frame_range?.start,
-          end: scene.end_frame ?? scene.endFrame ?? scene.end ?? scene.frame_range?.end,
+          start: scene.start_frame ?? scene.startFrame ?? scene.start,
+          end: scene.end_frame ?? scene.endFrame ?? scene.end,
         }))
         .filter(scene => scene.name && Number.isFinite(scene.start) && Number.isFinite(scene.end));
     }
@@ -955,28 +933,35 @@
       status.textContent = "Loading the WebAssembly build…";
       try {
         globalThis.__fframes_get_video_frame ??= () => null;
-        const wasm = await import("./demo/hello-world.js");
+        const [wasm, runtime] = await Promise.all([
+          import("./demo/hello-world.js"),
+          import("./demo/fframes-live.js"),
+        ]);
         await wasm.default();
-        bridge = wasm.create_wasm_bridge();
-        await loadFonts();
+        const bridge = wasm.create_wasm_bridge();
+        await loadFonts(bridge);
         const meta = await bridge.prepare();
-        fps = meta.fps || 30;
-        duration = Math.max(1, meta.durationInFrames);
-        scrub.max = duration - 1;
+        scrub.max = Math.max(0, meta.durationInFrames - 1);
         scenes = readScenes(meta);
         scenesEl.replaceChildren(...scenes.map((scene, index) => {
           const button = document.createElement("button");
           button.type = "button";
           button.dataset.index = index;
           button.textContent = scene.name;
-          button.addEventListener("click", () => seek(scene.start));
+          button.addEventListener("click", () => player.seek(scene.start));
           return button;
         }));
+        player = runtime.mount(bridge, frameEl, {
+          fps: meta.fps || 30,
+          durationInFrames: meta.durationInFrames,
+          autoplay: !reduceMotion,
+          valuesRoot: live,
+          onFrame: showFrame,
+        });
         // With reduced motion, wait for Play on a frame that shows the text.
-        frame = reduceMotion ? Math.min(60, duration - 1) : 0;
+        if (reduceMotion) player.seek(Math.min(60, meta.durationInFrames - 1));
         live.dataset.state = "ready";
-        draw(true);
-        setPlaying(!reduceMotion);
+        syncPlaying();
       } catch (error) {
         console.error(error);
         live.dataset.state = "error";
@@ -984,34 +969,20 @@
       }
     }
 
-    playButton.addEventListener("click", () => setPlaying(!playing));
-    scrub.addEventListener("input", () => seek(Number(scrub.value)));
-
-    let nameTimer;
-    nameInput.addEventListener("input", () => {
-      clearTimeout(nameTimer);
-      nameTimer = setTimeout(() => {
-        const name = nameInput.value;
-        // Calls are chained: the bridge must not replace the video while it is preparing one.
-        pending = pending.then(async () => {
-          if (!bridge) return;
-          await bridge.set_name(name);
-          draw(true);
-        }).catch(console.error);
-      }, 120);
+    playButton.addEventListener("click", () => {
+      if (!player) return;
+      if (player.playing) player.pause();
+      else player.play();
+      syncPlaying();
     });
-
-    document.addEventListener("visibilitychange", resume);
+    scrub.addEventListener("input", () => player?.seek(Number(scrub.value)));
 
     if ("IntersectionObserver" in window && typeof WebAssembly === "object") {
-      let booted = false;
-      new IntersectionObserver(entries => {
-        visible = entries[0].isIntersecting;
-        if (visible && !booted) {
-          booted = true;
+      new IntersectionObserver((entries, observer) => {
+        if (entries[0].isIntersecting) {
+          observer.disconnect();
           boot();
         }
-        resume();
       }, { rootMargin: "200px 0px" }).observe(live);
     } else {
       live.dataset.state = "error";

@@ -214,6 +214,12 @@ function passArray8ToWasm0(arg, malloc) {
     return ptr;
 }
 
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_export_2.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
+}
+
 let cachedFloat32ArrayMemory0 = null;
 
 function getFloat32ArrayMemory0() {
@@ -230,11 +236,11 @@ function passArrayF32ToWasm0(arg, malloc) {
     return ptr;
 }
 function __wbg_adapter_34(arg0, arg1, arg2) {
-    wasm.closure189_externref_shim(arg0, arg1, arg2);
+    wasm.closure191_externref_shim(arg0, arg1, arg2);
 }
 
-function __wbg_adapter_105(arg0, arg1, arg2, arg3) {
-    wasm.closure253_externref_shim(arg0, arg1, arg2, arg3);
+function __wbg_adapter_112(arg0, arg1, arg2, arg3) {
+    wasm.closure263_externref_shim(arg0, arg1, arg2, arg3);
 }
 
 const AudioDataFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -595,16 +601,8 @@ export class WasmBridge {
         const ret = wasm.wasmbridge_prepare(this.__wbg_ptr, isLikeNone(fps) ? 0x100000001 : (fps) >> 0);
         return ret;
     }
-    /**
-     * Replaces the greeting ("Hello <name>"); used by the landing page's live demo.
-     * @param {string} name
-     * @returns {Promise<VideoMetadata>}
-     */
-    set_name(name) {
-        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmbridge_set_name(this.__wbg_ptr, ptr0, len0);
-        return ret;
+    reset_live() {
+        wasm.wasmbridge_reset_live(this.__wbg_ptr);
     }
     /**
      * @param {Uint8Array} slice
@@ -615,6 +613,35 @@ export class WasmBridge {
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmbridge_ingest_font(this.__wbg_ptr, ptr0, len0);
         return ret;
+    }
+    /**
+     * Renders a frame as DOM operations against the previous live frame (see the live runtime).
+     * @param {bigint} frame
+     * @returns {any}
+     */
+    render_live(frame) {
+        const ret = wasm.wasmbridge_render_live(this.__wbg_ptr, frame);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * @param {string | null} [action]
+     */
+    set_hovered(action) {
+        var ptr0 = isLikeNone(action) ? 0 : passStringToWasm0(action, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.wasmbridge_set_hovered(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Pointer position in video coordinates; `inside: false` clears it.
+     * @param {number} x
+     * @param {number} y
+     * @param {boolean} inside
+     */
+    set_pointer(x, y, inside) {
+        wasm.wasmbridge_set_pointer(this.__wbg_ptr, x, y, inside);
     }
     /**
      * @param {bigint} frame
@@ -659,6 +686,14 @@ export class WasmBridge {
         var ptr2 = isLikeNone(base64_data) ? 0 : passStringToWasm0(base64_data, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len2 = WASM_VECTOR_LEN;
         wasm.wasmbridge_add_image_source(this.__wbg_ptr, ptr0, len0, ptr1, len1, width, height, ptr2, len2);
+    }
+    /**
+     * @param {boolean} down
+     * @param {number} x
+     * @param {number} y
+     */
+    set_pointer_down(down, x, y) {
+        wasm.wasmbridge_set_pointer_down(this.__wbg_ptr, down, x, y);
     }
     /**
      * @param {string} file
@@ -721,6 +756,32 @@ export class WasmBridge {
     }
     populate_static_fonts_db_with_static_fonts() {
         wasm.wasmbridge_populate_static_fonts_db_with_static_fonts(this.__wbg_ptr);
+    }
+    /**
+     * @param {string} action
+     */
+    trigger(action) {
+        const ptr0 = passStringToWasm0(action, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmbridge_trigger(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Seconds since the live session started, read by `ctx.input().time`.
+     * @param {number} seconds
+     */
+    set_time(seconds) {
+        wasm.wasmbridge_set_time(this.__wbg_ptr, seconds);
+    }
+    /**
+     * @param {string} key
+     * @param {string} value
+     */
+    set_value(key, value) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.wasmbridge_set_value(this.__wbg_ptr, ptr0, len0, ptr1, len1);
     }
 }
 
@@ -803,7 +864,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_105(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_112(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -830,12 +891,32 @@ function __wbg_get_imports() {
         const ret = new Uint8Array(arg0);
         return ret;
     };
+    imports.wbg.__wbg_new_e3b321dcfef89fc7 = function(arg0) {
+        const ret = new Uint32Array(arg0);
+        return ret;
+    };
     imports.wbg.__wbg_newnoargs_105ed471475aaf50 = function(arg0, arg1) {
         const ret = new Function(getStringFromWasm0(arg0, arg1));
         return ret;
     };
     imports.wbg.__wbg_newwithbyteoffsetandlength_d97e637ebe145a9a = function(arg0, arg1, arg2) {
         const ret = new Uint8Array(arg0, arg1 >>> 0, arg2 >>> 0);
+        return ret;
+    };
+    imports.wbg.__wbg_newwithbyteoffsetandlength_f1dead44d1fc7212 = function(arg0, arg1, arg2) {
+        const ret = new Uint32Array(arg0, arg1 >>> 0, arg2 >>> 0);
+        return ret;
+    };
+    imports.wbg.__wbg_newwithlength_c4c419ef0bc8a1f8 = function(arg0) {
+        const ret = new Array(arg0 >>> 0);
+        return ret;
+    };
+    imports.wbg.__wbg_of_1483b62f6e3f9868 = function(arg0, arg1, arg2, arg3) {
+        const ret = Array.of(arg0, arg1, arg2, arg3);
+        return ret;
+    };
+    imports.wbg.__wbg_of_4a05197bfc89556f = function(arg0, arg1, arg2) {
+        const ret = Array.of(arg0, arg1, arg2);
         return ret;
     };
     imports.wbg.__wbg_queueMicrotask_97d92b4fcc8a61c5 = function(arg0) {
@@ -903,8 +984,8 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper438 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 190, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper484 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 192, __wbg_adapter_34);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

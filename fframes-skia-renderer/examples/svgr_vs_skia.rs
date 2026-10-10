@@ -178,6 +178,7 @@ fn main() {
         scenes: runtime.timeline.scenes.as_ref(),
         media_source: Some(&combined_media),
         font_source: Some(&runtime.font_source),
+        input: None,
     };
 
     let frames = FRAMES.min(runtime.timeline.duration_in_frames);

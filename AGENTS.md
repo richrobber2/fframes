@@ -229,6 +229,7 @@ cargo test -- --nocapture
 /fframes-native-player     # Real-time preview window: fframes_native_player::play(&video, &PlayerOptions)
 /fframes-editor            # Web editor UI (ReScript + React), published as @fframes/editor
 /fframes-editor-controller # WASM bridge between a Video impl and the editor
+/fframes-live              # JS runtime: runs a Video in a web page as an interactive animation
 /fframes-test-utils        # Snapshot helpers for svgr! trees
 /svgr-macro                # The svgr! procedural macro (SVG DSL + static-subtree hashing)
 /media-dir-macro           # include_media_dir! (embeds a media folder into the binary)
@@ -668,6 +669,30 @@ pub fn create_wasm_bridge() -> WasmBridge {
   `#[cfg(not(target_arch = "wasm32"))]`; the bridge builds the library with `default-features = false`.
 - The editor cannot measure system fonts and decodes video frames through WebCodecs, so text
   helpers may return `None` and `get_synced_video_frame` falls back to `editor_fallback_image`.
+
+### 9b. Interactive animation (live runtime)
+
+A video does not have to end up as a file. `fframes-live/fframes-live.js` mounts the same WASM
+bridge into a page and keeps the SVG nodes alive: every frame `bridge.render_live(frame)` returns
+only the DOM changes (`fframes::live::LiveDiff`), and viewer input comes back to Rust as
+`ctx.input()` (`fframes::Input`). See `fframes-live/README.md` and the landing page demo.
+
+```rust
+let input = ctx.input();
+let name = input.value("name").unwrap_or(self.title);           // <input data-fframes-value="name">
+let open = input.count("menu") % 2 == 1;                          // clicks on data-action="menu"
+let pop = input.seconds_since("menu").map_or(1.0, |s| frame.animate_at(&self.pop, s));
+let fill = if input.is_hovered("menu") { "#334155" } else { "#0f172a" };
+fframes::svgr!(<rect data-action="menu" role="button" tabindex="0" aria-label="Menu" fill={fill} ... />)
+```
+
+- `input.pointer` (video coordinates) and `input.pointer_down`; `input.time` is seconds since mount
+  and never loops. Implement `Video::on_event` for state of your own (interior mutability).
+- File renders pass no input: every query answers "untouched", so the same code renders its
+  resting state into a video. Keep that state meaningful.
+- Elements are matched by position; when an element's children change count or tags it is
+  replaced whole. Keep interactive elements at a stable place in the tree (toggle attributes
+  rather than adding/removing siblings) so they keep focus.
 
 ### 10. Verify before you finish
 

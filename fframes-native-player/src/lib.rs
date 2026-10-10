@@ -119,6 +119,7 @@ pub fn play<'a, 'media: 'a, TVideo: Video + Sync>(
             width: TVideo::WIDTH,
             height: TVideo::HEIGHT,
         },
+        input: None,
     };
 
     let scheduler = Scheduler::new(

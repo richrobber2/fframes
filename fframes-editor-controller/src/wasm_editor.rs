@@ -2,7 +2,7 @@ use fframes::{FFramesContext, FFramesMode, Frame, StaticMediaProvider, Video, Vi
 use std::{cell::RefCell, collections::HashMap, marker::PhantomPinned, pin::Pin, sync::Mutex};
 use wasm_bindgen::prelude::*;
 
-use crate::{video_metadata, wasm_audio, wasm_font_source};
+use crate::{video_metadata, wasm_audio, wasm_font_source, wasm_live};
 
 #[wasm_bindgen]
 extern "C" {
@@ -84,6 +84,8 @@ pub struct WasmEditor<T: Video, TMedia: StaticMediaProvider<'static> + 'static> 
     time_base: Mutex<Option<fframes::TimeBase>>,
     media_provider: Mutex<fframes::DynamicMediaProvider<'static>>,
     video_decoders: fframes::VideoDecodersWorker,
+    input: Mutex<fframes::Input>,
+    live: Mutex<fframes::live::LiveDiff>,
 }
 
 impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<TVideo, TMedia> {
@@ -105,6 +107,8 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
                 Vec::new(),
             )),
             video_decoders: fframes::VideoDecodersWorker::default(),
+            input: Mutex::new(fframes::Input::default()),
+            live: Mutex::new(fframes::live::LiveDiff::default()),
         }
     }
 
@@ -112,6 +116,7 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
         let fps = { self.time_base.lock().unwrap().as_ref().map(|tb| tb.fps) };
 
         self.video_ctx.replace(VideoCtx::new(video));
+        self.live.lock().unwrap().reset();
         self.prepare(fps).await
     }
 
@@ -273,6 +278,7 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
                     scenes: self.scenes.lock().unwrap().as_ref(),
                     media_source: Some(self.media_provider.lock().unwrap().deref()),
                     abort_signal: None,
+                    input: Some(&self.input.lock().unwrap()),
                 },
             )
             .to_string()
@@ -315,6 +321,7 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
                     media_source: Some(self.media_provider.lock().unwrap().deref()),
                     font_source: Some(self.fonts.lock().unwrap().deref()),
                     abort_signal: None,
+                    input: None,
                 },
             )
             .to_string();
@@ -324,6 +331,65 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
         });
 
         result
+    }
+
+    /// Renders the frame and returns only the DOM operations since the previous live frame.
+    pub fn render_live(&self, frame: i64) -> Result<JsValue, JsValue> {
+        let svg = self.render_frame(frame);
+        let ops = self
+            .live
+            .lock()
+            .unwrap()
+            .next(&svg)
+            .map_err(|err| JsValue::from_str(&err))?;
+        Ok(wasm_live::ops_to_js(&ops))
+    }
+
+    /// Makes the next live frame mount whole, e.g. after the runtime lost its DOM.
+    pub fn reset_live(&self) {
+        self.live.lock().unwrap().reset();
+    }
+
+    fn dispatch(
+        &self,
+        update: impl FnOnce(&mut fframes::Input) -> Option<fframes::InteractionEvent>,
+    ) {
+        let mut input = self.input.lock().unwrap();
+        if let Some(event) = update(&mut input) {
+            self.video_ctx.borrow().video.on_event(&event, &input);
+        }
+    }
+
+    pub fn set_time(&self, seconds: f32) {
+        self.input.lock().unwrap().time = seconds;
+    }
+
+    pub fn set_pointer(&self, position: Option<(f32, f32)>) {
+        self.input.lock().unwrap().pointer = position;
+    }
+
+    pub fn set_pointer_down(&self, down: bool, x: f32, y: f32) {
+        self.dispatch(|input| {
+            input.pointer = Some((x, y));
+            input.pointer_down = down;
+            Some(if down {
+                fframes::InteractionEvent::PointerDown { x, y }
+            } else {
+                fframes::InteractionEvent::PointerUp { x, y }
+            })
+        });
+    }
+
+    pub fn set_hovered(&self, action: Option<String>) {
+        self.input.lock().unwrap().set_hovered(action);
+    }
+
+    pub fn trigger(&self, action: String) {
+        self.dispatch(|input| Some(input.trigger(action)));
+    }
+
+    pub fn set_value(&self, key: String, value: String) {
+        self.dispatch(|input| Some(input.set_value(key, value)));
     }
 
     pub fn ingest_font(&self, slice: &[u8]) -> JsValue {

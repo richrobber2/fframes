@@ -145,7 +145,7 @@ impl Scene for BetaExamples<'_> {
             }>
               {
                 match frame.seconds() {
-                   second if second < MARKETING_TS => self.hello_world_video.render_frame(frame, ctx),
+                   second if second < MARKETING_TS => fframes::Scene::render_frame(self.hello_world_video.as_ref(), frame, ctx),
                    second if second < PODCAST_TS => self.marketing_video.render_frame(frame, ctx),
                    second if second < TIKTOK_TS => self.podcast_video.render_frame(frame.into_global(), ctx),
                   _ => self.tiktok_video.render_frame(frame.into_global(), ctx),

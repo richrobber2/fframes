@@ -1,5 +1,5 @@
 use crate::media::{ImageData, Subtitles};
-use crate::{AudioData, FontSource, Frame, MediaProvider, ResolvedScenesTimeline, Svgr};
+use crate::{AudioData, FontSource, Frame, Input, MediaProvider, ResolvedScenesTimeline, Svgr};
 use fframes_media::VideoMedia;
 use std::sync::atomic::AtomicBool;
 
@@ -54,9 +54,18 @@ pub struct FFramesContext<'a, 'media: 'a> {
     pub media_source: Option<&'media dyn MediaProvider<'media>>,
     pub font_source: Option<&'a (dyn FontSource<'a> + 'a)>,
     pub abort_signal: Option<&'media AbortSignal>,
+    /// Viewer input when the video runs live (browser runtime, player). `None` for file renders;
+    /// read it through [`FFramesContext::input`].
+    pub input: Option<&'a Input>,
 }
 
 impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
+    /// What the viewer is doing. File renders get an untouched [`Input`], so interactive videos
+    /// render their resting state into files.
+    pub fn input(&self) -> &'a Input {
+        self.input.unwrap_or(Input::none())
+    }
+
     pub fn get_audio(&self, filename: impl AsRef<str>) -> Option<&'media AudioData<'media>> {
         let filename = filename.as_ref();
         let audio = self.media_source.and_then(|m| m.resolve_audio(filename));

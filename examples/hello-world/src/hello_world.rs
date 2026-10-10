@@ -5,11 +5,22 @@ use fframes::{
 
 include_media_dir!(pub struct HelloWorldMedia, "examples/hello-world/media");
 
+/// Colors the square cycles through, one per click.
+const SQUARE_COLORS: [&str; 4] = ["blue", "#fb6a22", "#16a34a", "#9333ea"];
+
 #[derive(Debug)]
 pub struct HelloWorldVideo<'a> {
     pub slug: &'a str,
     pub media: &'a HelloWorldMedia,
 }
+
+/// The extra quarter turn played from each click on the square.
+static SPIN: std::sync::LazyLock<fframes::animation::KeyFramesAnimation<f32>> =
+    std::sync::LazyLock::new(|| {
+        fframes::timeline!(
+            at 0.0, animate -90.0_f32 => 0.0, Easing::Spring { mass: 1.0, stiffness: 220.0, damping: 14.0 }
+        )
+    });
 
 impl Video for HelloWorldVideo<'_> {
     const FPS: usize = 30;
@@ -45,7 +56,40 @@ impl Scene for HelloWorldVideo<'_> {
         fframes::Duration::Seconds(30.)
     }
 
-    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> fframes::Svgr<'_> {
+    fn render_frame<'a>(&'a self, frame: Frame, ctx: &FFramesContext<'a, '_>) -> fframes::Svgr<'a> {
+        // Everything read from `input` is untouched in file renders, so the video file is unchanged.
+        let input = ctx.input();
+        let name = input
+            .value("name")
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .unwrap_or(self.slug);
+
+        let clicks = input.count("square");
+        let spin = input
+            .seconds_since("square")
+            .map_or(0.0, |seconds| frame.animate_at(&SPIN, seconds));
+        let hover = if input.is_hovered("square") {
+            1.08
+        } else {
+            1.0
+        };
+        let square_transform = format!(
+            "rotate({} 500 500) translate(500 500) scale({}) translate(-500 -500)",
+            spin + 90.0 * clicks as f32,
+            hover
+        );
+        let square_fill = SQUARE_COLORS[clicks as usize % SQUARE_COLORS.len()];
+        let square_radius = if input.is_hovered("square") { 40 } else { 0 };
+
+        let pointer = match input.pointer {
+            Some((x, y)) => fframes::svgr!(
+                <circle cx={x} cy={y} r={if input.pointer_down { 26 } else { 18 }}
+                        fill="none" stroke="#fb6a22" stroke-width="6" pointer-events="none" />
+            ),
+            None => fframes::Svgr::empty(),
+        };
+
         fframes::svgr!(
             <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -66,19 +110,27 @@ impl Scene for HelloWorldVideo<'_> {
                     ))}
                 />
 
-                // renders under the text
-                <rect
-                    x="400"
-                    y="400"
-                    width="200"
-                    height="200"
-                    fill="blue"
-                    transform={frame.animate(fframes::timeline!(
-                        at 0., animate Transform::translate(0, 0) => Transform::translate(200, 480), Easing::Linear,
-                        at 2. => 6.0, animate Transform::translate(200, 480) => Transform::translate(750, -400), Easing::Linear,
-                        at 6.0 => 10.0, animate Transform::translate(750, -400) => Transform::translate(1310, 480), Easing::Linear,
-                    ))}
-                />
+                // renders under the text; clicking it spins it and swaps its color when the video runs live
+                <g transform={frame.animate(fframes::timeline!(
+                    at 0., animate Transform::translate(0, 0) => Transform::translate(200, 480), Easing::Linear,
+                    at 2. => 6.0, animate Transform::translate(200, 480) => Transform::translate(750, -400), Easing::Linear,
+                    at 6.0 => 10.0, animate Transform::translate(750, -400) => Transform::translate(1310, 480), Easing::Linear,
+                ))}>
+                    <g transform={square_transform}>
+                        <rect
+                            data-action="square"
+                            role="button"
+                            tabindex="0"
+                            aria-label="Spin the square"
+                            x="400"
+                            y="400"
+                            width="200"
+                            height="200"
+                            rx={square_radius}
+                            fill={square_fill}
+                        />
+                    </g>
+                </g>
 
                 <text
                     x="99"
@@ -87,7 +139,7 @@ impl Scene for HelloWorldVideo<'_> {
                     font-size="150"
                     fill="#000"
                 >
-                    "Hello " {self.slug}
+                    "Hello " {name}
                 </text>
 
                 <text
@@ -100,6 +152,9 @@ impl Scene for HelloWorldVideo<'_> {
                 >
                     {format!("This frame index: {}, second: {:.2}", frame.index, frame.seconds())}
                 </text>
+
+                // follows the pointer when the video runs live
+                {pointer}
             </svg>
         )
     }

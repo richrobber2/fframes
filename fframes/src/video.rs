@@ -77,6 +77,14 @@ pub trait Video: Sync + Sized {
     /// return `Result` because it is extremely expensive to stop the rendering once it has
     /// started. Prepare compiler guaranteed data in advance and read it from `self`.
     fn render_frame<'a>(&'a self, frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a>;
+
+    /// Called by live runtimes after the viewer did something, once [`crate::Input`] reflects it.
+    /// Most videos read [`FFramesContext::input`] in `render_frame` and never need this; implement
+    /// it to keep state of your own (behind a `Mutex` or atomics, since `self` is shared).
+    /// File renders never call it.
+    fn on_event(&self, event: &crate::InteractionEvent, input: &crate::Input) {
+        let _ = (event, input);
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -5,6 +5,7 @@ mod video_metadata;
 pub mod wasm_audio;
 mod wasm_editor;
 pub mod wasm_font_source;
+mod wasm_live;
 
 pub use fframes;
 pub use lazy_static;

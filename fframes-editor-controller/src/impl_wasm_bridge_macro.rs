@@ -101,6 +101,49 @@ macro_rules! internal_impl_wasm_bridge {
                 self.0.render_preview_frame(frame)
             }
 
+            /// Renders a frame as DOM operations against the previous live frame (see the live runtime).
+            #[wasm_bindgen]
+            pub fn render_live(&self, frame: i64) -> Result<JsValue, JsValue> {
+                self.0.render_live(frame)
+            }
+
+            #[wasm_bindgen]
+            pub fn reset_live(&self) {
+                self.0.reset_live();
+            }
+
+            /// Seconds since the live session started, read by `ctx.input().time`.
+            #[wasm_bindgen]
+            pub fn set_time(&self, seconds: f32) {
+                self.0.set_time(seconds);
+            }
+
+            /// Pointer position in video coordinates; `inside: false` clears it.
+            #[wasm_bindgen]
+            pub fn set_pointer(&self, x: f32, y: f32, inside: bool) {
+                self.0.set_pointer(inside.then_some((x, y)));
+            }
+
+            #[wasm_bindgen]
+            pub fn set_pointer_down(&self, down: bool, x: f32, y: f32) {
+                self.0.set_pointer_down(down, x, y);
+            }
+
+            #[wasm_bindgen]
+            pub fn set_hovered(&self, action: Option<String>) {
+                self.0.set_hovered(action);
+            }
+
+            #[wasm_bindgen]
+            pub fn trigger(&self, action: String) {
+                self.0.trigger(action);
+            }
+
+            #[wasm_bindgen]
+            pub fn set_value(&self, key: String, value: String) {
+                self.0.set_value(key, value);
+            }
+
             #[wasm_bindgen]
             pub fn ingest_font(&self, slice: &[u8]) -> JsValue {
                 self.0.ingest_font(slice)

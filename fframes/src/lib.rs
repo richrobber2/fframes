@@ -110,6 +110,7 @@ mod duration;
 mod fframes_context;
 mod font_data;
 mod frame;
+mod interaction;
 mod media_provider;
 mod named_range;
 mod scenes;
@@ -128,6 +129,7 @@ pub use renderer::*;
 pub mod animation;
 pub mod diagnostics;
 pub mod error;
+pub mod live;
 pub mod log;
 
 #[cfg(test)]
@@ -145,6 +147,7 @@ pub use duration::*;
 pub use fframes_context::*;
 pub use font_data::*;
 pub use frame::*;
+pub use interaction::*;
 pub use media_provider::*;
 pub use named_range::*;
 pub use scenes::*;

@@ -201,6 +201,16 @@ impl Frame {
         self.animate_impl(animation, current_second)
     }
 
+    /// Samples the animation at `seconds` instead of the frame's time. Use it to play an animation
+    /// from an event, for example `frame.animate_at(&pop, input.seconds_since("open").unwrap_or(0.))`.
+    pub fn animate_at<T: crate::animation::Animatable + Copy + Default + std::fmt::Debug>(
+        &self,
+        animation: &animation::KeyFramesAnimation<T>,
+        seconds: f32,
+    ) -> T {
+        self.animate_impl(animation, &seconds)
+    }
+
     pub fn animate_loop<T: crate::animation::Animatable + Copy + Default + std::fmt::Debug>(
         &self,
         animation: &animation::KeyFramesAnimation<T>,

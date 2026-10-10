@@ -724,6 +724,12 @@ static ATTRIBUTE_NAMES_LIST: std::sync::LazyLock<Vec<&'static str>> =
             .collect()
     });
 
+fn is_interaction_attribute(name: &str) -> bool {
+    name.starts_with("data-")
+        || name.starts_with("aria-")
+        || matches!(name, "role" | "tabindex" | "pointer-events")
+}
+
 fn detailed_attribute_error(attribute: &str, span: Span) -> syn::Error {
     use std::borrow::Cow;
     let msg: Cow<'static, str> = match attribute {
@@ -762,6 +768,12 @@ fn maybe_parse_svg_attribute(
             return Ok(None);
         }
         return Err(syn::Error::new(attribute_span, format!("Found non svg namespace: {}, please make sure that only svg xml is supported.\nPlease make sure to enter a valid SVG namespace => {SVG_NS}", attribute.value_as_string().unwrap_or_default())));
+    }
+
+    // Interaction and accessibility attributes only matter to the live runtime in the browser,
+    // which renders the string variant of the tree. They change no pixels, so drop them here.
+    if is_interaction_attribute(&attribute_name) {
+        return Ok(None);
     }
 
     let aid = AId::from_str(attribute.name_as_string().unwrap().as_str())

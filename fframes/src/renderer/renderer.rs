@@ -228,6 +228,7 @@ pub fn render<
             TVideo::HEIGHT,
             options.scale_resolution,
         ),
+        input: None,
     };
 
     render_backend.render(
@@ -312,6 +313,7 @@ pub fn render_frame<
             TVideo::HEIGHT,
             options.scale_resolution,
         ),
+        input: None,
     };
 
     let decoders = VideoDecodersWorker::new(1);
