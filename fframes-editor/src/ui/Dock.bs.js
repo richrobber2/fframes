@@ -18,6 +18,7 @@ import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as UseDebounce from "../bindings/UseDebounce.bs.js";
 import * as ZoomControls from "./Timeline/ZoomControls.bs.js";
 import * as EditorContext from "../EditorContext.bs.js";
+import * as MobileScrubber from "./MobileScrubber.bs.js";
 import * as AnimationRuntime from "../services/AnimationRuntime.bs.js";
 import * as UseViewportFollow from "./Timeline/useViewportFollow.bs.js";
 import * as Webapi__Dom__Window from "bs-webapi/src/Webapi/Dom/Webapi__Dom__Window.bs.js";
@@ -247,11 +248,21 @@ function Dock(Props) {
                     
                   });
         }), []);
+  React.useEffect((function () {
+          var pause = function (param) {
+            return Curry._1(dispatch, /* Pause */2);
+          };
+          window.addEventListener("fframes-pause", pause);
+          return (function (param) {
+                    window.removeEventListener("fframes-pause", pause);
+                    
+                  });
+        }), []);
   var rewindStep = String(context.options.rewindStepInSeconds);
-  var fps = debouncedFps !== undefined ? Math.min(debouncedFps, context.videoMeta.fps).toFixed(0) : String(context.videoMeta.fps);
+  var fps = debouncedFps !== undefined ? Math.min(debouncedFps, context.videoMeta.fps * player.playbackRate).toFixed(0) : "\xe2\x80\x94";
   if (match$1[0]) {
     return React.createElement("div", {
-                className: "absolute bottom-4 left-1/2 -translate-x-1/2"
+                className: "fframes-show-controls absolute bottom-4 left-1/2 -translate-x-1/2"
               }, React.createElement("div", {
                     className: "rounded-full bg-surface-elevated shadow-[var(--shadow-300),var(--shadow-hairline)]"
                   }, React.createElement(IconButton.make, {
@@ -284,8 +295,35 @@ function Dock(Props) {
   var match$6 = player.playState;
   var volume = player.volume;
   var frame = player.magnet;
-  return React.createElement("div", undefined, React.createElement(RangeTools.make, {
+  return React.createElement("div", {
+              className: "fframes-dock"
+            }, React.createElement(MobileScrubber.make, {
+                  frame: player.frame,
+                  duration: context.videoMeta.durationInFrames,
                   fps: context.videoMeta.fps,
+                  onSeek: (function (frame) {
+                      Curry._1(dispatch, /* Pause */2);
+                      return Curry._1(dispatch, {
+                                  TAG: /* Seek */0,
+                                  _0: frame
+                                });
+                    })
+                }), React.createElement(RangeTools.make, {
+                  fps: context.videoMeta.fps,
+                  rate: player.playbackRate,
+                  limit: Belt_Option.getWithDefault(player.fpsLimit, 0),
+                  onRate: (function (rate) {
+                      return Curry._1(dispatch, {
+                                  TAG: /* SetPlaybackRate */3,
+                                  _0: rate
+                                });
+                    }),
+                  onLimit: (function (limit) {
+                      return Curry._1(dispatch, {
+                                  TAG: /* SetFpsLimit */4,
+                                  _0: limit
+                                });
+                    }),
                   start: player.loopStart,
                   end: player.loopEnd,
                   duration: context.videoMeta.durationInFrames,
@@ -293,13 +331,13 @@ function Dock(Props) {
                   enabled: player.rangeLoop,
                   onStart: (function (frame) {
                       return Curry._1(dispatch, {
-                                  TAG: /* SetLoopStart */3,
+                                  TAG: /* SetLoopStart */5,
                                   _0: frame
                                 });
                     }),
                   onEnd: (function (frame) {
                       return Curry._1(dispatch, {
-                                  TAG: /* SetLoopEnd */4,
+                                  TAG: /* SetLoopEnd */6,
                                   _0: frame
                                 });
                     }),
@@ -333,7 +371,7 @@ function Dock(Props) {
                                     ])
                               }), React.createElement("span", {
                                 className: "inline-block w-[2ch] text-right"
-                              }, fps), React.createElement("span", undefined, "fps"), match$4 !== undefined ? React.createElement(Icon.Lock, {
+                              }, player.playState === /* Playing */0 ? fps : "\xe2\x80\x94"), React.createElement("span", undefined, "fps"), match$4 !== undefined ? React.createElement(Icon.Lock, {
                                   className: "size-3.5"
                                 }) : null),
                       content: originalFps !== undefined ? "Preview locked to " + String(context.videoMeta.fps) + " fps, the video renders at " + String(originalFps) + " fps" : "Preview frame rate"

@@ -1,6 +1,8 @@
+import { PlaybackSettings } from "./PlaybackSettings";
 import React, { useEffect, useState } from "react";
 
 type Props = {
+  rate: number; limit: number; onRate: (value: number) => void; onLimit: (value: number) => void;
   fps: number;
   start: number;
   end: number;
@@ -13,6 +15,7 @@ type Props = {
   onPause: () => void;
 };
 export function RangeTools({
+  rate, limit, onRate, onLimit,
   fps,
   start,
   end,
@@ -102,8 +105,9 @@ export function RangeTools({
   return (
     <section
       aria-label="Selected range"
-      className="absolute bottom-20 left-1/2 flex w-max max-w-[95vw] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl bg-surface-elevated p-2 text-default shadow-[var(--shadow-300)]"
+      className="fframes-range-tools absolute bottom-20 left-1/2 flex w-max max-w-[95vw] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl bg-surface-elevated p-2 text-default shadow-[var(--shadow-300)]"
     >
+      <PlaybackSettings rate={rate} limit={limit} onRate={onRate} onLimit={onLimit} />
       <span
         className="basis-full text-center text-xs tabular"
         aria-label="Selected duration"
@@ -170,11 +174,6 @@ export function RangeTools({
       >
         Reset range
       </button>
-      {checked && !available && (
-        <span className="basis-full text-center text-xs">
-          MP4 export is available in the local preview launcher.
-        </span>
-      )}
       {available && (
         <button
           className={button}

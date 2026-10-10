@@ -14,7 +14,9 @@ import * as IconButton from "./components/IconButton.bs.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as EditorContext from "../EditorContext.bs.js";
+import * as UseDimensions from "../hooks/useDimensions.bs.js";
 import * as UseEditorLayout from "../hooks/useEditorLayout.bs.js";
+import * as ProjectNavigation from "./ProjectNavigation.bs.js";
 import HtmlReactParser from "html-react-parser";
 import * as Icon from "@openai/apps-sdk-ui/components/Icon";
 
@@ -26,9 +28,12 @@ function Editor(Props) {
   var context = EditorContext.useEditorContext(undefined);
   var theme = Theme.useTheme(Belt_Option.getWithDefault(context.options.theme, "system"));
   var match = Curry._1(context.usePlayer, undefined);
+  var dispatch = match[1];
+  var player = match[0];
   var match$1 = Hooks.useToggle(false);
   var isFullScreen = match$1[0];
   var layout = Hooks.useEditorLayout(isFullScreen);
+  var viewport = UseDimensions.useDimensions(undefined);
   var previewRef = React.useRef(null);
   var match$2 = React.useState(function () {
         var match = context.options.mediaListLayout;
@@ -93,13 +98,38 @@ function Editor(Props) {
               value: theme,
               children: React.createElement(Tooltip.Provider.make, {
                     children: React.createElement("div", {
-                          className: "relative h-screen w-screen overflow-hidden bg-surface font-sans text-default antialiased",
+                          className: Cx.cx([
+                                "relative h-screen w-screen overflow-hidden bg-surface font-sans text-default antialiased",
+                                viewport.width < 900 || viewport.height < 650 ? "fframes-mobile" : ""
+                              ]),
                           id: "fframes-editor"
-                        }, React.createElement("style", {
+                        }, React.createElement(ProjectNavigation.make, {
+                              scenes: context.videoMeta.scenesTimeline,
+                              frame: player.frame,
+                              duration: context.videoMeta.durationInFrames,
+                              fps: context.videoMeta.fps,
+                              onScene: (function (frame) {
+                                  if (player.rangeLoop) {
+                                    Curry._1(dispatch, /* ToggleRangeLoop */4);
+                                  }
+                                  return Curry._1(dispatch, {
+                                              TAG: /* Seek */0,
+                                              _0: frame
+                                            });
+                                })
+                            }), React.createElement("style", {
                               type: "text/css"
                             }, "\n            #editor-preview > svg {\n            transform-origin: top left !important;\n            transform: scale(" + layout.preview.scale.toString() + ") !important\n            }\n            "), React.createElement("div", {
-                              className: "flex w-full justify-center overflow-auto"
-                            }, Utils.$$Option.unwrapOr(Belt_Option.map(layout.mediaControls, (function (size) {
+                              className: "fframes-preview-row flex w-full justify-center overflow-auto"
+                            }, !isFullScreen && Belt_Option.isNone(layout.mediaControls) ? React.createElement("details", {
+                                    className: "fframes-mobile-media"
+                                  }, React.createElement("summary", undefined, "Media"), React.createElement("div", undefined, React.createElement("h1", {
+                                            className: "text-base font-semibold"
+                                          }, videoTitle), React.createElement("p", {
+                                            className: "text-xs text-secondary"
+                                          }, videoDetails), React.createElement($$MediaList.make, {
+                                            variant: /* List */1
+                                          }))) : null, Utils.$$Option.unwrapOr(Belt_Option.map(layout.mediaControls, (function (size) {
                                         return React.createElement("aside", {
                                                     "aria-label": "Project",
                                                     className: "flex h-full flex-col overflow-auto border-r border-subtle bg-surface-secondary",
@@ -128,7 +158,7 @@ function Editor(Props) {
                                   className: "bg-black",
                                   id: "editor-preview",
                                   style: UseEditorLayout.sizeToStyle(layout.preview)
-                                }, HtmlReactParser(Utils.$$Option.unwrapOr(match[0].svg, ""), {
+                                }, HtmlReactParser(Utils.$$Option.unwrapOr(player.svg, ""), {
                                       htmlparser2: {
                                         xmlMode: true
                                       }

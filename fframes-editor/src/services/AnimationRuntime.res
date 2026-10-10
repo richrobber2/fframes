@@ -4,6 +4,10 @@ open Belt
 /* @returns whether continue execution or not */
 type onFrame = (~secondsFromStart: float) => bool
 
+@module("./playbackTiming.js") external nextTick: (float, float, int) => float = "nextTick"
+type audioSchedule = {delay: float, offset: float, duration: float}
+@module("./playbackTiming.js") external audioTiming: (int, WasmController.namedRange, int, float) => audioSchedule = "audioTiming"
+@module("./playbackTiming.js") external setSourceRate: (WebAudio.AudioNode.t, float) => unit = "setSourceRate"
 module AudioRuntime = {
   let rafId: ref<option<Webapi.rafId>> = ref(None)
   let playingSources: ref<array<(WasmController.namedRange, AudioNode.t)>> = ref([])
@@ -11,6 +15,7 @@ module AudioRuntime = {
   let lastFrameTime = ref(None)
   let runtimeFps = ref(None)
   let smoothing = 0.9
+  let tickTime = ref(-1.)
   let generation = ref(0)
   let ctx = AudioContext.create()
   let gain = ctx->AudioContext.createGain
@@ -26,33 +31,39 @@ module AudioRuntime = {
       let (_, source) = nameAndSource
       source->AudioNode.stop
     })
+    playingSources := []
+    rafId := None
   }
 
-  let rec frame = (~onFrame: onFrame, _timestamp) => {
-    let currentTime = ctx->AudioContext.getCurrentTime
-    let thisFrameTime =
-      lastFrameTime.contents->Belt.Option.map(lastFrameTime => currentTime -. lastFrameTime)
-
-    let secondsFromStart = currentTime -. startTime.contents
-    runtimeFps :=
-      switch (runtimeFps.contents, thisFrameTime) {
-      | (Some(lastFps), Some(thisFrameTime)) if thisFrameTime > 0. =>
-        Some(lastFps *. smoothing +. 1. /. thisFrameTime *. (1. -. smoothing))
-      | (_, Some(thisFrameTime)) if thisFrameTime > 0. => Some(1. /. thisFrameTime)
-      | _ => None
+  let markFrame = () => {
+    let now = ctx->AudioContext.getCurrentTime
+    switch lastFrameTime.contents {
+    | Some(previous) if now > previous => {
+        let fps = 1. /. (now -. previous)
+        runtimeFps := Some(switch runtimeFps.contents {
+          | Some(last) => last *. smoothing +. fps *. (1. -. smoothing)
+          | None => fps
+        })
       }
+    | _ => ()
+    }
+    lastFrameTime := Some(now)
+  }
 
-    let generationBefore = generation.contents
-    let continue = onFrame(~secondsFromStart)
-    // A range wrap starts a new runtime from inside onFrame. The old callback
-    // must not cancel that new runtime or stop its freshly scheduled audio.
-    if generationBefore !== generation.contents {
-      ()
-    } else if continue {
-      lastFrameTime := Some(currentTime)
-      rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame)))
+  let rec frame = (~onFrame: onFrame, ~playbackRate, ~fpsLimit, _timestamp) => {
+    let currentTime = ctx->AudioContext.getCurrentTime
+    let tick = nextTick(currentTime, tickTime.contents, fpsLimit)
+    if tick < 0. {
+      rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame, ~playbackRate, ~fpsLimit)))
     } else {
-      stop()
+      tickTime := tick
+      let secondsFromStart = (currentTime -. startTime.contents) *. playbackRate
+      let generationBefore = generation.contents
+      let continue = onFrame(~secondsFromStart)
+      if generationBefore !== generation.contents { () }
+      else if continue {
+        rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame, ~playbackRate, ~fpsLimit)))
+      } else { stop() }
     }
   }
 
@@ -85,7 +96,7 @@ module AudioRuntime = {
     })
   }
 
-  let startAnimation = (~onFrame, ~currentFrame, ~videoMeta) => {
+  let startAnimation = (~onFrame, ~currentFrame, ~videoMeta, ~playbackRate, ~fpsLimit) => {
     stop() // in case if other animation playing
 
     // Browsers suspend contexts created before a user gesture. Silent videos
@@ -98,32 +109,26 @@ module AudioRuntime = {
     ->ignore
     lastFrameTime := None
     runtimeFps := None
+    tickTime := -1.
 
-    playingSources := ctx->connectAudioFiles(videoMeta)
+    playingSources := ctx->connectAudioFiles(videoMeta)->Array.keep(((track, _)) => track.end > currentFrame)
 
     gain->AudioNode.connect(ctx.destination)->ignore
     startTime := ctx.currentTime
 
-    @inline
-    let framesToSeconds = frames => frames->Float.fromInt /. videoMeta.fps->Float.fromInt
-
     playingSources.contents->Array.forEach(((track, source)) => {
-      let offset = (currentFrame - track.start)->framesToSeconds
-      let duration = (track.end - currentFrame)->framesToSeconds->Js.Math.max(0.)
-
+      let timing = audioTiming(currentFrame, track, videoMeta.fps, playbackRate)
+      setSourceRate(source, playbackRate)
       source->AudioNode.connect(gain)
-
-      if offset < 0. {
+      if timing.duration > 0. {
         source->AudioNode.startWithOffset(
-          ~startTime=startTime.contents +. Js.Math.abs(offset),
-          ~offset=0.,
-          ~duration,
+          ~startTime=startTime.contents +. timing.delay,
+          ~offset=timing.offset,
+          ~duration=timing.duration,
         )
-      } else {
-        source->AudioNode.startWithOffset(~startTime=startTime.contents, ~offset, ~duration)
       }
     })
 
-    rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame)))
+    rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame, ~playbackRate, ~fpsLimit)))
   }
 }

@@ -1,6 +1,6 @@
 open UseDimensions
 
-let min_timeline_height = 450
+let min_timeline_height = 260
 let min_media_controls_width = 370
 
 type sectionSize = {
@@ -35,8 +35,8 @@ let calculatePreviewSize = (
   ~min_media_controls_width,
   ~min_timeline_height,
 ) => {
-  let max_preview_width = windowDimensions.width - min_media_controls_width
-  let max_preview_height = windowDimensions.height - min_timeline_height
+  let max_preview_width = max(1, windowDimensions.width - min_media_controls_width)
+  let max_preview_height = max(1, windowDimensions.height - min_timeline_height)
 
   if width > max_preview_width || height > max_preview_height {
     let scale = min(
@@ -74,6 +74,18 @@ let useEditorLayout = (~isFullScreen) => {
         mediaControls: None,
         timeLine: None,
       }
+    } else if viewportSize.width < 900 || viewportSize.height < 650 {
+      let previewSize = calculatePreviewSize(
+        viewportSize,
+        videoMeta,
+        ~min_media_controls_width=0,
+        ~min_timeline_height=viewportSize.height - max(100, viewportSize.height * 2 / 5),
+      )
+      {
+        preview: previewSize,
+        mediaControls: None,
+        timeLine: Some({width: viewportSize.width->Belt.Int.toFloat, height: 260.0, scale: 1.0}),
+      }
     } else {
       viewportSize
       ->calculatePreviewSize(videoMeta, ~min_media_controls_width, ~min_timeline_height)
@@ -86,7 +98,7 @@ let useEditorLayout = (~isFullScreen) => {
             scale: 1.0,
           }),
           timeLine: Some({
-            height: viewportSize.height->Belt.Int.toFloat -. previewSize.height,
+            height: 260.0,
             width: viewportSize.width->Belt.Int.toFloat,
             scale: 1.0,
           }),

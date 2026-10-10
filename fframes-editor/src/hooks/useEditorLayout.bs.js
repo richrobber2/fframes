@@ -15,8 +15,8 @@ function sizeToStyle(param) {
 function calculatePreviewSize(windowDimensions, param, min_media_controls_width, min_timeline_height) {
   var height = param.height;
   var width = param.width;
-  var max_preview_width = windowDimensions.width - min_media_controls_width | 0;
-  var max_preview_height = windowDimensions.height - min_timeline_height | 0;
+  var max_preview_width = Caml.caml_int_max(1, windowDimensions.width - min_media_controls_width | 0);
+  var max_preview_height = Caml.caml_int_max(1, windowDimensions.height - min_timeline_height | 0);
   if (!(width > max_preview_width || height > max_preview_height)) {
     return {
             height: height,
@@ -44,17 +44,29 @@ function useEditorLayout(isFullScreen) {
                           mediaControls: undefined
                         };
                 }
-                var previewSize = calculatePreviewSize(viewportSize, videoMeta, 370, 450);
+                if (viewportSize.width < 900 || viewportSize.height < 650) {
+                  var previewSize = calculatePreviewSize(viewportSize, videoMeta, 0, viewportSize.height - Caml.caml_int_max(100, (viewportSize.height << 1) / 5 | 0) | 0);
+                  return {
+                          preview: previewSize,
+                          timeLine: {
+                            height: 260.0,
+                            width: viewportSize.width,
+                            scale: 1.0
+                          },
+                          mediaControls: undefined
+                        };
+                }
+                var previewSize$1 = calculatePreviewSize(viewportSize, videoMeta, 370, 260);
                 return {
-                        preview: previewSize,
+                        preview: previewSize$1,
                         timeLine: {
-                          height: viewportSize.height - previewSize.height,
+                          height: 260.0,
                           width: viewportSize.width,
                           scale: 1.0
                         },
                         mediaControls: {
-                          height: previewSize.height,
-                          width: viewportSize.width - previewSize.width,
+                          height: previewSize$1.height,
+                          width: viewportSize.width - previewSize$1.width,
                           scale: 1.0
                         }
                       };
@@ -65,7 +77,7 @@ function useEditorLayout(isFullScreen) {
             ]);
 }
 
-var min_timeline_height = 450;
+var min_timeline_height = 260;
 
 var min_media_controls_width = 370;
 

@@ -2,30 +2,29 @@
 
 import * as Curry from "rescript/lib/es6/curry.js";
 import * as React from "react";
-import * as Webapi__Dom__Window from "bs-webapi/src/Webapi/Dom/Webapi__Dom__Window.bs.js";
-import * as Webapi__Dom__EventTarget from "bs-webapi/src/Webapi/Dom/Webapi__Dom__EventTarget.bs.js";
+import * as ViewportJs from "./viewport.js";
 
-var DocumentEvent = Webapi__Dom__EventTarget.Impl({});
+function getDimensions(prim) {
+  return ViewportJs.getDimensions();
+}
 
-function getDimensions(param) {
-  return {
-          width: window.innerWidth,
-          height: window.innerHeight
-        };
+function observeViewport(prim0, prim1) {
+  ViewportJs.observeViewport(prim0);
+  
 }
 
 function useDimensions(param) {
   var match = React.useState(function () {
-        return getDimensions(undefined);
+        return ViewportJs.getDimensions();
       });
   var setDimensions = match[1];
   React.useLayoutEffect((function () {
-          var handleResize = function (param) {
-            return Curry._1(setDimensions, getDimensions);
-          };
-          window.addEventListener("resize", handleResize);
           return (function (param) {
-                    window.removeEventListener("resize", handleResize);
+                    ViewportJs.observeViewport(function (param) {
+                          return Curry._1(setDimensions, (function (param) {
+                                        return ViewportJs.getDimensions();
+                                      }));
+                        });
                     
                   });
         }), []);
@@ -33,9 +32,9 @@ function useDimensions(param) {
 }
 
 export {
-  DocumentEvent ,
   getDimensions ,
+  observeViewport ,
   useDimensions ,
   
 }
-/* DocumentEvent Not a pure module */
+/* react Not a pure module */

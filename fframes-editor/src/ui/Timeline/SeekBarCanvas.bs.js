@@ -62,7 +62,7 @@ function handleHorizontalScroll(e, dispatch, player, size, editorContext) {
       newOffset > maxOffset ? maxOffset : newOffset
     );
   Curry._1(dispatch, {
-        TAG: /* SetViewportOffset */6,
+        TAG: /* SetViewportOffset */8,
         _0: constrainedOffset
       });
   return true;
@@ -81,13 +81,13 @@ function handleWheelZoom(e, dispatch, player, size, editorContext) {
   var newViewportOffset = ZoomUtils.calculateViewportOffsetForCurrentFrameZoom(player.frame, player.zoom, newZoom, player.viewportOffset, size.maxSceneWidth, editorContext.videoMeta.durationInFrames, size.timelineMarginLeft);
   if (mouseX >= 0 && mouseX <= size.maxSceneWidth) {
     return Curry._1(dispatch, {
-                TAG: /* BatchZoomUpdate */7,
+                TAG: /* BatchZoomUpdate */9,
                 _0: newZoom,
                 _1: newViewportOffset
               });
   } else {
     return Curry._1(dispatch, {
-                TAG: /* SetZoom */5,
+                TAG: /* SetZoom */7,
                 _0: newZoom
               });
   }

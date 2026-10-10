@@ -7,9 +7,10 @@ let a = Js.Dict.empty
 let make = () => {
   let context = EditorContext.useEditorContext()
   let theme = Theme.useTheme(context.options.theme->Belt.Option.getWithDefault(#system))
-  let (player, _) = context.usePlayer()
+  let (player, dispatch) = context.usePlayer()
   let (isFullScreen, fullScreenToggler) = Hooks.useToggle(false)
   let layout = useEditorLayout(~isFullScreen)
+  let viewport = UseDimensions.useDimensions()
   let previewRef = React.useRef(Js.Nullable.null)
   let (listVariant, setListVariant) = React.useState(_ =>
     switch context.options.mediaListLayout {
@@ -73,7 +74,13 @@ let make = () => {
     <Tooltip.Provider>
       <div
         id="fframes-editor"
-        className="relative h-screen w-screen overflow-hidden bg-surface font-sans text-default antialiased">
+        className={Cx.cx(["relative h-screen w-screen overflow-hidden bg-surface font-sans text-default antialiased", (viewport.width < 900 || viewport.height < 650) ? "fframes-mobile" : ""])}>
+        <ProjectNavigation scenes=context.videoMeta.scenesTimeline frame=player.frame
+          duration=context.videoMeta.durationInFrames fps=context.videoMeta.fps
+          onScene={frame => {
+            if player.rangeLoop {dispatch(ToggleRangeLoop)}
+            dispatch(Seek(frame))
+          }} />
         <style type_="text/css">
           {React.string(
             `
@@ -84,7 +91,17 @@ let make = () => {
             `,
           )}
         </style>
-        <div className="flex w-full justify-center overflow-auto">
+        <div className="fframes-preview-row flex w-full justify-center overflow-auto">
+          {if !isFullScreen && layout.mediaControls->Belt.Option.isNone {
+            <details className="fframes-mobile-media">
+              <summary> {React.string("Media")} </summary>
+              <div>
+                <h1 className="text-base font-semibold"> {videoTitle} </h1>
+                <p className="text-xs text-secondary"> {React.string(videoDetails)} </p>
+                <MediaList variant=MediaList.List />
+              </div>
+            </details>
+          } else {React.null}}
           {
             // MediaList
             layout.mediaControls

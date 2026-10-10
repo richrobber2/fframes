@@ -9,6 +9,7 @@ type state = {
   startPlayingFrame: int,
   playState: playState,
   fpsLimit: option<int>,
+  playbackRate: float,
   svg: option<string>,
   volume: option<int>,
   magnet: option<int>,
@@ -27,6 +28,8 @@ type action =
   | Play
   | Pause
   | SetVolume(int)
+  | SetPlaybackRate(float)
+  | SetFpsLimit(int)
   | SetMagnet
   | SetLoopStart(int)
   | SetLoopEnd(int)
@@ -62,6 +65,10 @@ external initVideoFrameBufferManager: int => unit = "initVideoFrameBufferManager
 
 module MakePlayer = (Wasm: WasmController.WasmBridge) => {
   initVideoFrameBufferManager(Wasm.videoMeta.fps)
+  let frame_key = Wasm.videoMeta.name ++ "_fframe"
+  let scene_key = Wasm.videoMeta.name ++ "_ffscene"
+  let zoom_key = Wasm.videoMeta.name ++ "_ffzoom"
+  let viewport_offset_key = Wasm.videoMeta.name ++ "_ffviewportoffset"
 
   module PlayerState = {
     type t = state
@@ -128,7 +135,8 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         frame: initialFrame,
         startPlayingFrame: initialFrame,
         playState: WaitingForAction,
-        fpsLimit: Some(Wasm.videoMeta.fps),
+        fpsLimit: None,
+        playbackRate: 1.0,
         volume: volume,
         svg: Wasm.controller->WasmController.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
         magnet: savedMagnet,
@@ -144,7 +152,8 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         playState: CantPlay,
         svg: None,
         volume: volume,
-        fpsLimit: Some(Wasm.videoMeta.fps),
+        fpsLimit: None,
+        playbackRate: 1.0,
         magnet: savedMagnet,
         loopStart: 0,
         loopEnd: Wasm.videoMeta.durationInFrames,
@@ -229,6 +238,8 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
       }
     | Play => {...state, playState: Playing, startPlayingFrame: state.frame}
     | Pause => {...state, playState: Paused}
+    | SetPlaybackRate(rate) => {...state, playbackRate: Js.Math.max(0.25, Js.Math.min(2.0, rate))}
+    | SetFpsLimit(limit) => {...state, fpsLimit: limit <= 0 ? None : Some(max(1, min(120, limit)))}
     | SetVolume(volume) => {
         ...state,
         volume: Some(volume),
@@ -276,6 +287,7 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
 
     let state = get()
     let restarted = if state.rangeLoop && nextFrame >= state.loopEnd {
+      AnimationRuntime.AudioRuntime.markFrame()
       dispatch(
         Seek(state.loopStart + mod(nextFrame - state.loopStart, state.loopEnd - state.loopStart)),
       )
@@ -285,6 +297,7 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
       true
     } else {
       if nextFrame !== state.frame {
+        AnimationRuntime.AudioRuntime.markFrame()
         dispatch(NewFrame(nextFrame))
       }
       false
@@ -308,6 +321,8 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         ~onFrame=onFrame(dispatch),
         ~currentFrame,
         ~videoMeta=Wasm.videoMeta,
+        ~playbackRate=state.playbackRate,
+        ~fpsLimit=state.fpsLimit->Option.getWithDefault(0),
       )
       ()
     }
@@ -342,6 +357,14 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
 
   let rec dispatch = action => {
     sideEffect(action, dispatch)
+    let wasPlaying = get().playState === Playing
     reducer(action)->set
+    switch action {
+    | SetPlaybackRate(_) | SetFpsLimit(_) if wasPlaying => {
+        dispatch(Pause)
+        dispatch(Play)
+      }
+    | _ => ()
+    }
   }
 }

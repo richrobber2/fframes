@@ -21,7 +21,7 @@ function Timeline(Props) {
           var match = CanvasSize.calculateTimelineMargins(player.viewportOffset, initialVideoTotalWidth, sectionSize.width);
           var timelineMarginRight = match[1];
           var timelineMarginLeft = match[0];
-          var availableWidth = sectionSize.width - timelineMarginLeft - timelineMarginRight;
+          var availableWidth = Math.max(1.0, sectionSize.width - timelineMarginLeft - timelineMarginRight);
           var basePxRatio = availableWidth / editorContext.videoMeta.durationInFrames;
           var frameToPxRatio = basePxRatio * player.zoom;
           return {
@@ -80,7 +80,7 @@ function Timeline(Props) {
                   framePosition > maxOffset ? maxOffset : framePosition
                 );
               Curry._1(dispatch, {
-                    TAG: /* SetViewportOffset */6,
+                    TAG: /* SetViewportOffset */8,
                     _0: constrainedOffset
                   });
             }

@@ -7,6 +7,20 @@ import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as MediaLoader from "./mediaLoader.bs.js";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
+import * as PlaybackTimingJs from "./playbackTiming.js";
+
+function nextTick(prim0, prim1, prim2) {
+  return PlaybackTimingJs.nextTick(prim0, prim1, prim2);
+}
+
+function audioTiming(prim0, prim1, prim2, prim3) {
+  return PlaybackTimingJs.audioTiming(prim0, prim1, prim2, prim3);
+}
+
+function setSourceRate(prim0, prim1) {
+  PlaybackTimingJs.setSourceRate(prim0, prim1);
+  
+}
 
 var rafId = {
   contents: undefined
@@ -28,6 +42,10 @@ var runtimeFps = {
   contents: undefined
 };
 
+var tickTime = {
+  contents: -1
+};
+
 var generation = {
   contents: 0
 };
@@ -47,46 +65,45 @@ function stop(param) {
           cancelAnimationFrame(prim);
           
         }));
-  return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
-                nameAndSource[1].stop();
-                
-              }));
+  Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
+          nameAndSource[1].stop();
+          
+        }));
+  playingSources.contents = [];
+  rafId.contents = undefined;
+  
 }
 
-function frame(onFrame, _timestamp) {
+function markFrame(param) {
+  var now = ctx.currentTime;
+  var previous = lastFrameTime.contents;
+  if (previous !== undefined && now > previous) {
+    var fps = 1 / (now - previous);
+    var last = runtimeFps.contents;
+    runtimeFps.contents = last !== undefined ? last * 0.9 + fps * (1 - 0.9) : fps;
+  }
+  lastFrameTime.contents = now;
+  
+}
+
+function frame(onFrame, playbackRate, fpsLimit, _timestamp) {
   var currentTime = ctx.currentTime;
-  var thisFrameTime = Belt_Option.map(lastFrameTime.contents, (function (lastFrameTime) {
-          return currentTime - lastFrameTime;
-        }));
-  var secondsFromStart = currentTime - startTime.contents;
-  var match = runtimeFps.contents;
-  var tmp;
-  var exit = 0;
-  if (match !== undefined) {
-    if (thisFrameTime !== undefined) {
-      if (thisFrameTime > 0) {
-        tmp = match * 0.9 + 1 / thisFrameTime * (1 - 0.9);
-      } else {
-        exit = 1;
-      }
-    } else {
-      tmp = undefined;
-    }
-  } else {
-    exit = 1;
+  var tick = PlaybackTimingJs.nextTick(currentTime, tickTime.contents, fpsLimit);
+  if (tick < 0) {
+    rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
+              return frame(onFrame, playbackRate, fpsLimit, param);
+            }));
+    return ;
   }
-  if (exit === 1) {
-    tmp = thisFrameTime !== undefined && thisFrameTime > 0 ? 1 / thisFrameTime : undefined;
-  }
-  runtimeFps.contents = tmp;
+  tickTime.contents = tick;
+  var secondsFromStart = (currentTime - startTime.contents) * playbackRate;
   var generationBefore = generation.contents;
   var $$continue = Curry._1(onFrame, secondsFromStart);
   if (generationBefore !== generation.contents) {
     return ;
   } else if ($$continue) {
-    lastFrameTime.contents = currentTime;
     rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
-              return frame(onFrame, param);
+              return frame(onFrame, playbackRate, fpsLimit, param);
             }));
     return ;
   } else {
@@ -125,32 +142,33 @@ function connectAudioFiles(ctx, videoMeta) {
               }));
 }
 
-function startAnimation(onFrame, currentFrame, videoMeta) {
+function startAnimation(onFrame, currentFrame, videoMeta, playbackRate, fpsLimit) {
   stop(undefined);
   ctx.resume().catch(function (error) {
         console.error(error);
-
+        
       });
   lastFrameTime.contents = undefined;
   runtimeFps.contents = undefined;
-  playingSources.contents = connectAudioFiles(ctx, videoMeta);
+  tickTime.contents = -1;
+  playingSources.contents = Belt_Array.keep(connectAudioFiles(ctx, videoMeta), (function (param) {
+          return param[0].end > currentFrame;
+        }));
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
   Belt_Array.forEach(playingSources.contents, (function (param) {
           var source = param[1];
-          var track = param[0];
-          var offset = (currentFrame - track.start | 0) / videoMeta.fps;
-          var duration = Math.max((track.end - currentFrame | 0) / videoMeta.fps, 0);
+          var timing = audioTiming(currentFrame, param[0], videoMeta.fps, playbackRate);
+          PlaybackTimingJs.setSourceRate(source, playbackRate);
           source.connect(gain);
-          if (offset < 0) {
-            source.start(startTime.contents + Math.abs(offset), 0, duration);
-          } else {
-            source.start(startTime.contents, offset, duration);
+          if (timing.duration > 0) {
+            source.start(startTime.contents + timing.delay, timing.offset, timing.duration);
+            return ;
           }
           
         }));
   rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
-            return frame(onFrame, param);
+            return frame(onFrame, playbackRate, fpsLimit, param);
           }));
   
 }
@@ -162,17 +180,22 @@ var AudioRuntime = {
   lastFrameTime: lastFrameTime,
   runtimeFps: runtimeFps,
   smoothing: 0.9,
+  tickTime: tickTime,
   generation: generation,
   ctx: ctx,
   gain: gain,
   setVolume: setVolume,
   stop: stop,
+  markFrame: markFrame,
   frame: frame,
   connectAudioFiles: connectAudioFiles,
   startAnimation: startAnimation
 };
 
 export {
+  nextTick ,
+  audioTiming ,
+  setSourceRate ,
   AudioRuntime ,
   
 }
