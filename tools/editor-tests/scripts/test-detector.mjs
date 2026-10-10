@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {inspectModule} from '../public/module-tests.js';
+const rect=(left=0,right=360)=>({left,right,width:right-left,height:100});
+let node={getClientRects:()=>[1],getBoundingClientRect:()=>rect(),querySelectorAll:()=>[],querySelector:()=>null};
+const doc={querySelectorAll:()=>[node],querySelector:()=>({getBoundingClientRect:()=>rect()}),defaultView:{getComputedStyle:()=>({visibility:'visible'})}};
+assert.equal(inspectModule(doc,'navigation','nav').status,'pass');
+node.getBoundingClientRect=()=>rect(-10,400);assert.equal(inspectModule(doc,'navigation','nav').status,'fail');
+node.getClientRects=()=>[];assert.equal(inspectModule(doc,'navigation','nav').status,'skipped');
+node.getClientRects=()=>[1];node.getBoundingClientRect=()=>rect();assert.equal(inspectModule(doc,'preview','preview').status,'fail');
+node.querySelectorAll=()=>[{getClientRects:()=>[1],getBoundingClientRect:()=>rect(300,450),getAttribute:()=> 'Speed'}];assert(inspectModule(doc,'speed-fps','settings').issues[0].includes('Speed'));
+console.log('PASS detector: healthy module, module overflow, hidden module, missing scene, overflowing control');

@@ -187,18 +187,24 @@ let make = (
     )
   }, [])
 
+  React.useEffect0(() => {
+    let pause = _ => dispatch(Pause)
+    Dom.window |> DocumentEvent.asEventTarget |> Dom.EventTarget.addEventListener("fframes-pause", pause)
+    Some(() => Dom.window |> DocumentEvent.asEventTarget |> Dom.EventTarget.removeEventListener("fframes-pause", pause))
+  })
+
   let rewindStep = context.options.rewindStepInSeconds->Int.toString
   let fps = switch debouncedFps {
   | Some(fps) =>
     fps
-    ->Js.Math.min(context.videoMeta.fps->Js.Float.fromInt)
+    ->Js.Math.min(context.videoMeta.fps->Js.Float.fromInt *. player.playbackRate)
     ->Js.Float.toFixedWithPrecision(~digits=0)
-  | None => context.videoMeta.fps->Int.toString
+  | None => "—"
   }
 
   {
     if isCollapsed {
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+      <div className="fframes-show-controls absolute bottom-4 left-1/2 -translate-x-1/2">
         <div
           className="rounded-full bg-surface-elevated shadow-[var(--shadow-300),var(--shadow-hairline)]">
           <IconButton onClick=toggleDock label="Show controls" shortcut="T">
@@ -207,8 +213,12 @@ let make = (
         </div>
       </div>
     } else {
-      <div>
+      <div className="fframes-dock">
+        <MobileScrubber frame=player.frame duration=context.videoMeta.durationInFrames fps=context.videoMeta.fps
+          onSeek={frame => {dispatch(Pause); dispatch(Seek(frame))}} />
         <RangeTools
+          rate=player.playbackRate limit={player.fpsLimit->Option.getWithDefault(0)}
+          onRate={rate => dispatch(SetPlaybackRate(rate))} onLimit={limit => dispatch(SetFpsLimit(limit))}
           fps=context.videoMeta.fps
           start=player.loopStart
           end=player.loopEnd
@@ -258,7 +268,7 @@ let make = (
                   },
                 ])}
               />
-              <span className="inline-block w-[2ch] text-right"> {React.string(fps)} </span>
+              <span className="inline-block w-[2ch] text-right"> {React.string(player.playState === Playing ? fps : "—")} </span>
               <span> {React.string("fps")} </span>
               {switch context.videoMeta.originalFps {
               | Some(_) => <LockIcon className="size-3.5" />

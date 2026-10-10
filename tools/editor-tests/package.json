@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node scripts/module-tests.mjs --repo ../..",
+    "test:detector": "node scripts/test-detector.mjs",
+    "serve": "node serve.mjs"
+  }
+}

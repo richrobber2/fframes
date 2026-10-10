@@ -35,21 +35,21 @@ export function renderEditor(
       options,
       dynamicImports: partialOptions.dynamicMediaFolder,
     }),
-    wasmController.prepare(options.lockFps).then(videoMeta => {
-      document.title = videoMeta.name.split("::").pop() ?? "fframes";
-      root.render(
-        <React.StrictMode>
-          <EditorContext
-            options={options}
-            wasmController={wasmController}
-            videoMeta={videoMeta}
-          >
-            <Editor />
-          </EditorContext>
-        </React.StrictMode>
-      );
-    }),
-  ]);
+    wasmController.prepare(options.lockFps),
+  ]).then(([, videoMeta]) => {
+    document.title = videoMeta.name.split("::").pop() ?? "fframes";
+    root.render(
+      <React.StrictMode>
+        <EditorContext options={options} wasmController={wasmController} videoMeta={videoMeta}>
+          <Editor />
+        </EditorContext>
+      </React.StrictMode>
+    );
+    requestAnimationFrame(() => window.parent.postMessage({type: "fframes-ready"}, location.origin));
+  }).catch(error => {
+    console.error(error);
+    window.parent.postMessage({type: "fframes-error", message: "The example could not be prepared."}, location.origin);
+  });
 
   document.addEventListener(
     "focus",
@@ -77,7 +77,7 @@ export async function load_audio_wasm_callback(name: string) {
   }
 
   const importPath = Object.keys(lastImports).find(key =>
-    lastImports?.[key].endsWith(name)
+    key.split("/").pop() === name || lastImports?.[key].endsWith(name)
   );
   if (!importPath) {
     throw new Error(

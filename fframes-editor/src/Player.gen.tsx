@@ -15,12 +15,13 @@ export type state = {
   readonly startPlayingFrame: number; 
   readonly playState: playState; 
   readonly fpsLimit?: number; 
+  readonly playbackRate: number; 
   readonly svg?: string; 
   readonly volume?: number; 
   readonly magnet?: number; 
-  readonly loopStart: number;
-  readonly loopEnd: number;
-  readonly rangeLoop: boolean;
+  readonly loopStart: number; 
+  readonly loopEnd: number; 
+  readonly rangeLoop: boolean; 
   readonly zoom: number; 
   readonly viewportOffset: number
 };
@@ -35,6 +36,8 @@ export type action =
   | { tag: "Seek"; value: number }
   | { tag: "NewFrame"; value: number }
   | { tag: "SetVolume"; value: number }
+  | { tag: "SetPlaybackRate"; value: number }
+  | { tag: "SetFpsLimit"; value: number }
   | { tag: "SetLoopStart"; value: number }
   | { tag: "SetLoopEnd"; value: number }
   | { tag: "SetZoom"; value: number }

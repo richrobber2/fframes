@@ -1,36 +1,11 @@
-open Webapi
-
-module DocumentEvent = Dom.EventTarget.Impl(Dom.Window)
-
-type dimensions = {
-  width: int,
-  height: int,
-}
-
-let getDimensions = _ => {
-  width: Dom.window->Dom.Window.innerWidth,
-  height: Dom.window->Dom.Window.innerHeight,
-}
-
+type dimensions = {width: int, height: int}
+@module("./viewport.js") external getDimensions: unit => dimensions = "getDimensions"
+@module("./viewport.js") external observeViewport: (unit => unit) => (unit => unit) = "observeViewport"
 let useDimensions = () => {
   let (dimensions, setDimensions) = React.useState(getDimensions)
-
   React.useLayoutEffect0(() => {
-    let handleResize = _ => {
-      setDimensions(getDimensions)
-    }
-
-    Dom.window
-    |> DocumentEvent.asEventTarget
-    |> Dom.EventTarget.addEventListener("resize", handleResize)
-
-    Some(
-      () =>
-        Dom.window
-        |> DocumentEvent.asEventTarget
-        |> Dom.EventTarget.removeEventListener("resize", handleResize),
-    )
+    let cleanup = observeViewport(() => setDimensions(_ => getDimensions()))
+    Some(cleanup)
   })
-
   dimensions
 }

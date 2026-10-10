@@ -48,9 +48,9 @@ function useToggle($$default) {
         ];
 }
 
-var DocumentEvent = UseDimensions.DocumentEvent;
-
 var getDimensions = UseDimensions.getDimensions;
+
+var observeViewport = UseDimensions.observeViewport;
 
 var useDimensions = UseDimensions.useDimensions;
 
@@ -67,8 +67,8 @@ var calculatePreviewSize = UseEditorLayout.calculatePreviewSize;
 var useEditorLayout = UseEditorLayout.useEditorLayout;
 
 export {
-  DocumentEvent ,
   getDimensions ,
+  observeViewport ,
   useDimensions ,
   min_timeline_height ,
   min_media_controls_width ,

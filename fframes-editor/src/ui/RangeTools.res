@@ -1,6 +1,10 @@
 @react.component @module("./RangeTools.tsx")
 external make: (
   ~fps: int,
+  ~rate: float,
+  ~limit: int,
+  ~onRate: float => unit,
+  ~onLimit: int => unit,
   ~start: int,
   ~end: int,
   ~duration: int,

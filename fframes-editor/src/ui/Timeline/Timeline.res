@@ -20,7 +20,7 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
 
     // Calculate available width after reserving margin space
     let availableWidth =
-      sectionSize.width -. timelineMarginLeft->Float.fromInt -. timelineMarginRight->Float.fromInt
+      Js.Math.max(1.0, sectionSize.width -. timelineMarginLeft->Float.fromInt -. timelineMarginRight->Float.fromInt)
 
     // Base timeline scaling on available width, not full width
     let basePxRatio = availableWidth /. editorContext.videoMeta.durationInFrames->Float.fromInt
