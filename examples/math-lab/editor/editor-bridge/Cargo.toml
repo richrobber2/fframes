@@ -1,0 +1,18 @@
+[package]
+name = "math-lab-bridge"
+version = "1.2.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "math_lab_bridge"
+path = "lib.rs"
+
+[dependencies]
+wasm-bindgen.workspace = true
+fframes-editor-controller = { path = "../../../../fframes-editor-controller" }
+math-lab = { path = "../..", default-features = false }
+
+[lints]
+workspace = true

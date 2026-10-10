@@ -50,6 +50,8 @@ members = [
     "examples/fframes-intro",
     "examples/made-of-motion",
     "examples/shader-mode",
+    "examples/math-lab",
+    "examples/math-lab/editor/editor-bridge",
 ]
 
 [workspace.lints.rust]

@@ -1,0 +1,28 @@
+[package]
+name = "math-lab"
+version = "1.2.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+fframes = { workspace = true }
+
+[target.'cfg(not(any(target_arch = "wasm32", windows)))'.dependencies]
+fframes = { workspace = true, features = ["build-portable"] }
+
+[features]
+default = ["renderer"]
+renderer = ["fframes/compile-time-svgtree", "fframes/cli"]
+
+[lib]
+name = "math_lab"
+path = "src/lib.rs"
+doctest = false
+
+[[bin]]
+name = "math-lab"
+path = "src/main.rs"
+required-features = ["renderer"]
+
+[lints]
+workspace = true

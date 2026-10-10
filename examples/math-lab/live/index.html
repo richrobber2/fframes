@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101412" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23101412%27/%3E%3Ccircle cx=%2714%27 cy=%2718%27 r=%2710%27 fill=%27none%27 stroke=%27%23d9f18b%27/%3E%3Ccircle cx=%2723%27 cy=%2710%27 r=%275%27 fill=%27none%27 stroke=%27%23b6a9ee%27/%3E%3C/svg%3E"
+    />
+    <meta
+      name="description"
+      content="Explore Fourier series, linear transformations, and chaos in three interactive math experiments."
+    />
+    <title>Math in Motion — Three interactive experiments</title>
+
+    <link rel="stylesheet" href="./style.css" />
+    <script type="importmap">
+      { "imports": { "@fframes/editor": "./editor-shim.js" } }
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <circle cx="13" cy="17" r="10" stroke="#d9f18b" />
+            <circle cx="23" cy="12" r="5" stroke="#b6a9ee" />
+            <path d="M13 17L23 12L26 8" stroke="#f0f0e7" />
+            <circle cx="26" cy="8" r="2" fill="#d9f18b" /></svg
+          >Math in Motion
+        </div>
+        <span class="mono header-note">A little math. A lot of motion.</span>
+      </header>
+      <main>
+        <nav class="lab-nav" role="tablist" aria-label="Choose a visualization">
+          <button
+            id="tab-fourier"
+            class="lab-tab"
+            role="tab"
+            aria-selected="true"
+            aria-controls="fourier-panel"
+            tabindex="0"
+            data-lab="fourier"
+          >
+            <span>01</span> Fourier series
+          </button>
+          <button
+            id="tab-linear"
+            class="lab-tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="linear-panel"
+            tabindex="-1"
+            data-lab="linear"
+          >
+            <span>02</span> Linear transformations
+          </button>
+          <button
+            id="tab-chaos"
+            class="lab-tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="chaos-panel"
+            tabindex="-1"
+            data-lab="chaos"
+          >
+            <span>03</span> Chaos
+          </button>
+        </nav>
+        <section
+          id="fourier-panel"
+          role="tabpanel"
+          aria-labelledby="tab-fourier"
+          tabindex="0"
+        >
+          <input type="hidden" data-fframes-value="wave" value="square" /><input
+            type="hidden"
+            data-fframes-value="manual"
+            value="1"
+          /><input type="hidden" data-fframes-value="target" value="1" /><input
+            type="hidden"
+            data-fframes-value="compact"
+            value="0"
+          />
+
+          <section class="hero">
+            <div>
+              <p class="mono eyebrow">01 / The Fourier series</p>
+              <h1>Complex waves.<br /><em>Simple circles.</em></h1>
+            </div>
+            <p class="intro">
+              Every circle adds a little more detail.<br />Explore how rotating
+              motion builds a wave, one harmonic at a time.
+            </p>
+          </section>
+          <section class="lab" aria-label="Interactive Fourier series explorer">
+            <div class="lab-top">
+              <div class="tabs" role="group" aria-label="Wave shape">
+                <button
+                  class="wave-button"
+                  aria-pressed="true"
+                  data-wave="square"
+                >
+                  <svg viewBox="0 0 24 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M1 13V3H12V13H23V3"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    /></svg
+                  >Square</button
+                ><button
+                  class="wave-button"
+                  aria-pressed="false"
+                  data-wave="sawtooth"
+                >
+                  <svg viewBox="0 0 24 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M1 13L12 3V13L23 3"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    /></svg
+                  >Sawtooth</button
+                ><button
+                  class="wave-button"
+                  aria-pressed="false"
+                  data-wave="triangle"
+                >
+                  <svg viewBox="0 0 24 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M1 13L7 3L17 13L23 3"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    /></svg
+                  >Triangle
+                </button>
+              </div>
+              <span class="mono experiment">An experiment in addition</span>
+            </div>
+            <div class="workspace">
+              <div class="stage">
+                <div
+                  class="live-frame"
+                  id="fourier-stage"
+                  aria-label="Rotating circles and the resulting Fourier wave"
+                ></div>
+                <p class="loading-note" data-loading="fourier" role="status">
+                  Loading the live experiment…
+                </p>
+                <div class="legend">
+                  <span><i class="swatch circle"></i>Rotating circles</span
+                  ><span><i class="swatch"></i>Fourier sum</span
+                  ><span id="target-legend"
+                    ><i class="swatch target"></i>Ideal wave</span
+                  >
+                </div>
+              </div>
+              <aside class="controls" aria-label="Animation controls">
+                <div>
+                  <div class="control-head">
+                    <label for="terms">Circles / terms</label
+                    ><output id="terms-value" for="terms">5</output>
+                  </div>
+                  <input
+                    class="range"
+                    id="terms"
+                    data-fframes-value="terms"
+                    type="range"
+                    min="1"
+                    max="30"
+                    step="1"
+                    value="5"
+                  />
+                  <div class="range-ends"><span>1</span><span>30</span></div>
+                  <p class="hint" id="harmonic-note">
+                    5 odd harmonics, up to n = 9.
+                  </p>
+                </div>
+                <div>
+                  <div class="control-head">
+                    <label for="speed">Speed</label
+                    ><output class="small" id="speed-value" for="speed"
+                      >1×</output
+                    >
+                  </div>
+                  <input
+                    class="range"
+                    id="speed"
+                    data-fframes-value="speed"
+                    type="range"
+                    min="0.25"
+                    max="2"
+                    step="0.25"
+                    value="1"
+                  />
+                  <div class="range-ends">
+                    <span>0.25×</span><span>2×</span>
+                  </div>
+                  <p class="hint">One cycle takes 8 seconds at 1×.</p>
+                </div>
+                <label class="toggle" for="show-target"
+                  >Show ideal wave<input
+                    id="show-target"
+                    type="checkbox"
+                    checked
+                /></label>
+                <div class="transport">
+                  <button class="primary" id="play" aria-label="Play animation">
+                    <span id="play-icon" aria-hidden="true">▶︎</span
+                    ><span id="play-label">Play</span></button
+                  ><button
+                    class="reset"
+                    id="reset"
+                    aria-label="Restart cycle"
+                    title="Restart cycle"
+                  >
+                    ↺
+                  </button>
+                </div>
+              </aside>
+            </div>
+            <div class="phasebar">
+              <label for="phase">SCRUB THE CYCLE</label
+              ><input
+                class="range"
+                id="phase"
+                data-fframes-value="phase"
+                type="range"
+                min="0"
+                max="360"
+                value="28"
+                step="0.1"
+                aria-describedby="phase-help"
+              /><output id="phase-value" for="phase">28°</output
+              ><span class="sr-only" id="phase-help"
+                >Changing phase pauses the animation. Use Play to resume.</span
+              >
+            </div>
+            <div class="understage">
+              <div>
+                <p class="section-label">The recipe</p>
+                <p class="formula" id="formula">
+                  <span>f(t)</span> ≈ 4/π [sin(t) + ⅓ sin(3t) + …]
+                </p>
+                <p class="formula-note" id="formula-note">
+                  Only odd harmonics. Each circle is smaller than the last.
+                </p>
+              </div>
+              <div>
+                <p class="section-label">The sum, right now</p>
+                <output class="sum-value" id="fourier-value">—</output>
+                <p class="formula-note">
+                  The endpoint’s height is the value of the Fourier sum.
+                </p>
+              </div>
+            </div>
+          </section>
+          <div class="insight">
+            <div class="mono insight-title">Try this ↗</div>
+            <p id="insight">
+              Start with <strong>one circle</strong>, then slowly add more. The
+              flat edges sharpen, but little ripples remain near each jump. That
+              persistent overshoot is the <strong>Gibbs phenomenon</strong>.
+            </p>
+          </div>
+          <section class="steps" aria-label="How it works">
+            <div>
+              <span class="step-num">01 — ROTATE</span>
+              <h2>A circle makes a sine wave.</h2>
+              <p>
+                Follow the vertical position of a point as it goes around a
+                circle. Its height rises and falls smoothly.
+              </p>
+            </div>
+            <div>
+              <span class="step-num">02 — ADD</span>
+              <h2>Put the circles tip to tip.</h2>
+              <p>
+                Each harmonic spins at a whole-number multiple of the base
+                speed. Their vertical positions add together.
+              </p>
+            </div>
+            <div>
+              <span class="step-num">03 — REVEAL</span>
+              <h2>Watch the shape emerge.</h2>
+              <p>
+                The final point traces the green wave. More harmonics add
+                detail, bringing the sum closer to the ideal shape.
+              </p>
+            </div>
+          </section>
+        </section>
+        <section
+          id="linear-panel"
+          role="tabpanel"
+          aria-labelledby="tab-linear"
+          tabindex="0"
+          hidden
+        >
+          <input type="hidden" data-fframes-value="eigen" value="0" /><input
+            type="hidden"
+            data-fframes-value="animate"
+            value="0"
+          /><input type="hidden" data-fframes-value="compact" value="0" />
+          <section class="hero">
+            <div>
+              <p class="mono eyebrow">02 / Linear transformations</p>
+              <h1>Move the grid.<br /><em>Change the space.</em></h1>
+            </div>
+            <p class="intro">
+              Four numbers can rotate, stretch, or flatten an entire plane.
+              Follow two arrows to see how a matrix moves every point.
+            </p>
+          </section>
+          <section
+            class="lab"
+            aria-label="Interactive linear transformation explorer"
+          >
+            <div class="lab-top">
+              <div class="lin-presets" role="group" aria-label="Matrix presets">
+                <button
+                  class="lin-preset"
+                  data-lin-preset="shear"
+                  aria-pressed="true"
+                >
+                  Shear</button
+                ><button
+                  class="lin-preset"
+                  data-lin-preset="rotation"
+                  aria-pressed="false"
+                >
+                  Rotate 45°</button
+                ><button
+                  class="lin-preset"
+                  data-lin-preset="reflect"
+                  aria-pressed="false"
+                >
+                  Reflect</button
+                ><button
+                  class="lin-preset"
+                  data-lin-preset="singular"
+                  aria-pressed="false"
+                >
+                  Flatten</button
+                ><button
+                  class="lin-preset"
+                  data-lin-preset="identity"
+                  aria-pressed="false"
+                >
+                  Identity
+                </button>
+              </div>
+              <span class="mono experiment">An experiment in space</span>
+            </div>
+            <div class="workspace">
+              <div class="stage">
+                <div
+                  class="live-frame"
+                  id="linear-stage"
+                  aria-label="A grid transformed by your matrix"
+                ></div>
+                <p class="loading-note" data-loading="linear" role="status">
+                  Loading the live experiment…
+                </p>
+                <div class="legend">
+                  <span><i class="swatch"></i>First column</span
+                  ><span><i class="swatch circle"></i>Second column</span
+                  ><span><i class="swatch target"></i>Original square</span
+                  ><span id="lin-eigen-legend" hidden
+                    ><i class="swatch lin-legend-eigen"></i>Eigenvector
+                    directions</span
+                  >
+                </div>
+              </div>
+              <aside
+                class="controls lin-controls"
+                aria-label="Transformation controls"
+              >
+                <div>
+                  <h2 class="lin-control-title">Target matrix</h2>
+                  <div class="lin-matrix">
+                    <label for="lin-a"
+                      >a<input
+                        id="lin-a"
+                        data-fframes-value="a"
+                        type="number"
+                        min="-3"
+                        max="3"
+                        step="any"
+                        value="1"
+                        aria-label="Matrix row 1 column 1, a" /></label
+                    ><label for="lin-b"
+                      >b<input
+                        id="lin-b"
+                        data-fframes-value="b"
+                        type="number"
+                        min="-3"
+                        max="3"
+                        step="any"
+                        value="1"
+                        aria-label="Matrix row 1 column 2, b" /></label
+                    ><label for="lin-c"
+                      >c<input
+                        id="lin-c"
+                        data-fframes-value="c"
+                        type="number"
+                        min="-3"
+                        max="3"
+                        step="any"
+                        value="0"
+                        aria-label="Matrix row 2 column 1, c" /></label
+                    ><label for="lin-d"
+                      >d<input
+                        id="lin-d"
+                        data-fframes-value="d"
+                        type="number"
+                        min="-3"
+                        max="3"
+                        step="any"
+                        value="1"
+                        aria-label="Matrix row 2 column 2, d"
+                    /></label>
+                  </div>
+                  <p class="hint">
+                    Each column tells one basis arrow where to go. Values from
+                    −3 to 3.
+                  </p>
+                </div>
+                <div>
+                  <div class="control-head">
+                    <label for="lin-progress">Transformation</label
+                    ><output
+                      id="lin-progress-value"
+                      for="lin-progress"
+                      class="small"
+                      >100%</output
+                    >
+                  </div>
+                  <input
+                    class="range"
+                    id="lin-progress"
+                    data-fframes-value="progress"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.001"
+                    value="1"
+                    aria-describedby="lin-progress-help"
+                  />
+                  <div class="range-ends">
+                    <span>Original</span><span>Target</span>
+                  </div>
+                  <p class="hint" id="lin-progress-help">
+                    Scrub from the identity matrix to your target. Each entry
+                    changes in a straight line.
+                  </p>
+                </div>
+                <div class="lin-eigen-group">
+                  <label class="toggle" for="lin-show-eigen"
+                    >Show eigenvectors<input
+                      id="lin-show-eigen"
+                      type="checkbox"
+                  /></label>
+                  <p class="hint lin-eigen-note" id="lin-eigen-note">
+                    Eigenvectors stay on their own line as the matrix acts.
+                  </p>
+                </div>
+                <div class="lin-animation-group">
+                  <button class="primary lin-animate" id="lin-animate">
+                    ↺ Replay transformation
+                  </button>
+                  <p class="hint lin-live" id="lin-motion-note">
+                    Replay takes 3 seconds.
+                  </p>
+                </div>
+              </aside>
+            </div>
+            <div class="lin-stats">
+              <div>
+                <p class="section-label">Area scale · determinant</p>
+                <output class="lin-det" id="lin-det">1.000</output>
+                <p class="hint" id="lin-area">
+                  Area × 1.000 · orientation preserved.
+                </p>
+              </div>
+              <div>
+                <p class="section-label">Matrix at this moment</p>
+                <pre
+                  class="lin-effective"
+                  id="lin-effective"
+                  aria-label="Current matrix"
+                >
+[ 1.00  1.00 ]
+[ 0.00  1.00 ]</pre
+                >
+                <p class="hint">(x, y) → (ax + by, cx + dy)</p>
+              </div>
+            </div>
+          </section>
+          <div class="insight">
+            <div class="mono insight-title">Try this ↗</div>
+            <p id="lin-insight">
+              A <strong>shear</strong> tilts the square into a parallelogram.
+              Its shape changes, but its area stays the same: the determinant
+              remains <strong>1</strong>. Replay it and follow the violet arrow.
+            </p>
+          </div>
+          <section class="steps" aria-label="How linear transformations work">
+            <div>
+              <span class="step-num">01 — FOLLOW</span>
+              <h2>Two arrows tell the story.</h2>
+              <p>
+                The green arrow begins at (1, 0), and the violet arrow at (0,
+                1). A matrix’s columns give their new coordinates.
+              </p>
+            </div>
+            <div>
+              <span class="step-num">02 — TRANSFORM</span>
+              <h2>Every point goes along.</h2>
+              <p>
+                A point (x, y) is x copies of the first arrow plus y copies of
+                the second. Move those arrows and the entire grid follows.
+              </p>
+            </div>
+            <div>
+              <span class="step-num">03 — MEASURE</span>
+              <h2>Area has a signature.</h2>
+              <p>
+                The determinant measures signed area. Negative means orientation
+                flips; zero means the whole plane collapses to a line or a
+                point.
+              </p>
+            </div>
+          </section>
+        </section>
+        <section
+          id="chaos-panel"
+          role="tabpanel"
+          aria-labelledby="tab-chaos"
+          tabindex="0"
+          hidden
+        >
+          <input type="hidden" data-fframes-value="compact" value="0" />
+          <div class="hero">
+            <div>
+              <p class="mono eyebrow">03 / Chaos &amp; the logistic map</p>
+              <h1>One simple rule.<br /><em>Unpredictable turns.</em></h1>
+            </div>
+            <p class="intro">
+              Repeat the same calculation. Change one number. Watch steady
+              behavior split into cycles, chaos, and surprising islands of
+              order.
+            </p>
+          </div>
+          <section class="lab" aria-label="Interactive logistic map explorer">
+            <div class="lab-top">
+              <div
+                class="chaos-presets"
+                role="group"
+                aria-label="Growth rate presets"
+              >
+                <button
+                  class="chaos-preset"
+                  id="chaos-preset-steady"
+                  data-chaos-r="2.8"
+                  aria-pressed="false"
+                >
+                  Steady</button
+                ><button
+                  class="chaos-preset"
+                  id="chaos-preset-cycle"
+                  data-chaos-r="3.2"
+                  aria-pressed="false"
+                >
+                  Two-cycle</button
+                ><button
+                  class="chaos-preset"
+                  id="chaos-preset-chaos"
+                  data-chaos-r="3.9"
+                  aria-pressed="true"
+                >
+                  Chaos</button
+                ><button
+                  class="chaos-preset"
+                  id="chaos-preset-window"
+                  data-chaos-r="3.83"
+                  aria-pressed="false"
+                >
+                  Periodic window
+                </button>
+              </div>
+              <span class="mono experiment">An experiment in iteration</span>
+            </div>
+            <div class="workspace">
+              <div class="stage">
+                <div
+                  class="live-frame"
+                  id="chaos-stage"
+                  aria-label="Logistic map bifurcations and nearby trajectories"
+                  aria-describedby="chaos-map-help"
+                ></div>
+                <p class="loading-note" data-loading="chaos" role="status">
+                  Loading the live experiment…
+                </p>
+                <div class="legend chaos-legend">
+                  <span><i class="swatch"></i>Trajectory A</span
+                  ><span><i class="swatch circle"></i>Trajectory B</span
+                  ><span
+                    ><i class="swatch chaos-cloud-swatch"></i>Long-run
+                    values</span
+                  >
+                </div>
+                <p class="chaos-caption" id="chaos-map-help">
+                  Click the upper map to choose a growth rate, or use the Growth
+                  rate slider. Each column shows 48 values after discarding
+                  1,200 steps. The plots below start 0.0001 apart and show every
+                  step.
+                </p>
+              </div>
+              <aside class="controls" aria-label="Logistic map controls">
+                <div>
+                  <div class="control-head">
+                    <label for="chaos-rate">Growth rate r</label
+                    ><output id="chaos-rate-value" for="chaos-rate"
+                      >3.900</output
+                    >
+                  </div>
+                  <input
+                    class="range"
+                    id="chaos-rate"
+                    data-fframes-value="rate"
+                    type="range"
+                    min="2.5"
+                    max="4"
+                    step="0.001"
+                    value="3.9"
+                    aria-describedby="chaos-rate-help"
+                  />
+                  <div class="range-ends">
+                    <span>2.500</span><span>4.000</span>
+                  </div>
+                  <p class="hint" id="chaos-rate-help">
+                    The same rate drives both trajectories.
+                  </p>
+                </div>
+                <div>
+                  <div class="control-head">
+                    <label for="chaos-initial">Initial value x₀</label
+                    ><output
+                      class="small"
+                      id="chaos-initial-value"
+                      for="chaos-initial"
+                      >0.4000</output
+                    >
+                  </div>
+                  <input
+                    class="range"
+                    id="chaos-initial"
+                    data-fframes-value="initial"
+                    type="range"
+                    min="0.05"
+                    max="0.95"
+                    step="0.001"
+                    value="0.4"
+                  />
+                  <div class="range-ends">
+                    <span>0.050</span><span>0.950</span>
+                  </div>
+                  <p class="chaos-initials">
+                    <span id="chaos-start-a">A starts at 0.4000</span
+                    ><br /><span id="chaos-start-b">B starts at 0.4001</span>
+                  </p>
+                  <p class="hint">Just 0.0001 apart at the start.</p>
+                </div>
+                <div
+                  class="chaos-readouts"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <div>
+                    <span class="chaos-readout-label">Gap after 80 steps</span
+                    ><output class="chaos-readout-value" id="chaos-final-gap"
+                      >—</output
+                    ><span class="chaos-readout-note">|x₈₀ᴬ − x₈₀ᴮ|</span>
+                  </div>
+                  <div>
+                    <span class="chaos-readout-label">Largest gap shown</span
+                    ><output class="chaos-readout-value" id="chaos-max-gap"
+                      >—</output
+                    ><span class="chaos-readout-note" id="chaos-max-step"
+                      >Across steps 0–80</span
+                    >
+                  </div>
+                </div>
+              </aside>
+            </div>
+            <div class="chaos-recipe">
+              <p class="section-label">One rule, repeated</p>
+              <p class="chaos-equation">
+                <span>x<sub>n+1</sub></span> = r x<sub>n</sub> (1 −
+                x<sub>n</sub>)
+              </p>
+              <p class="chaos-formula-note">
+                Take the current value x, multiply by r and by (1 − x), then
+                feed the result back in. For these controls, x stays between 0
+                and 1.
+              </p>
+            </div>
+          </section>
+          <div class="insight">
+            <div class="mono insight-title">Try this ↗</div>
+            <p id="chaos-insight">
+              With <strong>r = 3.9</strong>, nearby starts often separate
+              quickly. Compare their largest gap with the final gap: separation
+              can grow, shrink, and fold back together.
+            </p>
+          </div>
+          <section class="steps" aria-label="How the logistic map works">
+            <div>
+              <span class="step-num">01 — REPEAT</span>
+              <h2>Let the rule settle.</h2>
+              <p>
+                The upper map skips the early steps. At r = 2.8, values settle
+                toward one fixed point. At r = 3.2, they alternate between two.
+              </p>
+            </div>
+            <div>
+              <span class="step-num">02 — SPLIT</span>
+              <h2>Follow the branching.</h2>
+              <p>
+                As r increases, cycles split again and again. Chaotic regions
+                also contain periodic windows: try r = 3.830 to find a
+                three-cycle.
+              </p>
+            </div>
+            <div>
+              <span class="step-num">03 — COMPARE</span>
+              <h2>Watch close starts diverge.</h2>
+              <p>
+                Chaos can amplify a tiny initial difference. These 80 steps
+                illustrate sensitivity; their final gap alone does not determine
+                whether a system is chaotic.
+              </p>
+            </div>
+          </section>
+        </section>
+      </main>
+      <footer>
+        <span>Three experiments. One way to learn: explore.</span
+        ><span>Math in Motion · fframes live</span>
+      </footer>
+    </div>
+    <noscript
+      >These interactive experiments need JavaScript and WebAssembly. Serve this
+      folder with a local web server to explore them.</noscript
+    >
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
